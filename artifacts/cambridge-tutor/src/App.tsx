@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppShell } from "@/components/AppShell";
+import { StudentProvider, useStudent } from "@/contexts/StudentContext";
 
 import Dashboard from "@/pages/dashboard";
 import Tutor from "@/pages/tutor";
@@ -10,11 +11,18 @@ import Notes from "@/pages/notes";
 import NoteDetail from "@/pages/note-detail";
 import Flashcards from "@/pages/flashcards";
 import FlashcardDetail from "@/pages/flashcard-detail";
+import Onboarding from "@/pages/onboarding";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
 
 function Router() {
+  const { level } = useStudent();
+
+  if (!level) {
+    return <Onboarding />;
+  }
+
   return (
     <AppShell>
       <Switch>
@@ -34,9 +42,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
+        <StudentProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+        </StudentProvider>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

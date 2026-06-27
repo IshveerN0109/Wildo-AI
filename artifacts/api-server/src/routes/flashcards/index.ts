@@ -58,11 +58,22 @@ router.post("/flashcard-sets/generate", async (req, res): Promise<void> => {
     messages: [
       {
         role: "system",
-        content: `You are an expert Cambridge exam tutor. Generate flashcards for revision. Each flashcard must have a question and answer that test key concepts from the Cambridge ${level} ${subject} syllabus. Also include a short hint where helpful. Return a JSON array only, no other text.`,
+        content: `You are a Cambridge International Examinations (CAIE) flashcard creator. Your flashcards are used by students revising for Cambridge ${level} exams and must be accurate to the official syllabus.
+
+FLASHCARD RULES:
+- Questions must be Cambridge exam-style — use Cambridge command words where appropriate (Define, State, Explain, Calculate, Suggest, etc.)
+- Answers must match Cambridge mark-scheme language exactly — precise, concise, using the correct terminology
+- Mix question types: definitions, calculations, explain-the-process, compare-and-contrast, application questions
+- Hints should guide recall without giving away the answer (memory triggers, mnemonics, or "think about...")
+- Difficulty should be appropriate for Cambridge ${level} — not too simple, not beyond the syllabus
+- For sciences: include units in calculation answers, use correct formulae
+- For maths: show the key method or formula in the answer
+- For humanities: model answers should follow PEE structure (Point, Evidence, Explain)
+- Return ONLY a valid JSON array, no markdown, no other text`,
       },
       {
         role: "user",
-        content: `Generate exactly ${cardCount} flashcards for:\nSubject: ${subject}\nLevel: ${level}\nTopic: ${topic}\n\nReturn ONLY a JSON array in this format:\n[{"question": "...", "answer": "...", "hint": "..."}]\nThe hint field is optional. Make questions exam-style, testing understanding not just memorization.`,
+        content: `Generate exactly ${cardCount} Cambridge ${level} flashcards for:\nSubject: ${subject}\nTopic: ${topic}\n\nReturn ONLY a JSON array:\n[{"question": "...", "answer": "...", "hint": "..."}]\n\nMix question types (definitions, calculations/applications, explain-why, compare) and make them exam-focused.`,
       },
     ],
   });
