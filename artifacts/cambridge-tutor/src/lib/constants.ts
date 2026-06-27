@@ -1,20 +1,38 @@
+export const LEVELS = ["O Level", "A Level"] as const;
+export type Level = (typeof LEVELS)[number];
+
 export const O_LEVEL_SUBJECTS = [
   "Mathematics",
   "Additional Mathematics",
   "Physics",
   "Chemistry",
   "Biology",
+  "Combined Science",
   "English Language",
   "English Literature",
   "History",
   "Geography",
   "Economics",
-  "Computer Science",
+  "Commerce",
   "Accounting",
   "Business Studies",
+  "Computer Science",
+  "Information & Communication Technology",
+  "Design & Technology",
+  "Food & Nutrition",
+  "Art & Design",
   "Islamiyat",
-  "Pakistan Studies"
-];
+  "Pakistan Studies",
+  "Sociology",
+  "Environmental Management",
+  "Urdu",
+  "Bengali",
+  "Arabic",
+  "Chinese",
+  "Malay",
+  "French",
+  "Tamil",
+] as const;
 
 export const A_LEVEL_SUBJECTS = [
   "Mathematics",
@@ -25,13 +43,71 @@ export const A_LEVEL_SUBJECTS = [
   "English Language",
   "English Literature",
   "History",
+  "Geography",
   "Economics",
-  "Computer Science",
   "Accounting",
   "Business",
+  "Computer Science",
+  "Information Technology",
+  "Design & Technology",
+  "Law",
   "Psychology",
   "Sociology",
-  "Law"
-];
+  "Thinking Skills",
+  "Art & Design",
+  "General Paper",
+  "Urdu",
+  "Arabic",
+  "Chinese Language",
+  "Malay",
+  "French",
+  "Tamil",
+] as const;
 
-export const LEVELS = ["O Level", "A Level"];
+export type OLevelSubject = (typeof O_LEVEL_SUBJECTS)[number];
+export type ALevelSubject = (typeof A_LEVEL_SUBJECTS)[number];
+
+export const SUBJECT_EMOJIS: Record<string, string> = {
+  "Mathematics": "📐",
+  "Additional Mathematics": "📊",
+  "Further Mathematics": "📊",
+  "Physics": "⚡",
+  "Chemistry": "🧪",
+  "Biology": "🧬",
+  "Combined Science": "🔬",
+  "English Language": "📝",
+  "English Literature": "📖",
+  "History": "🏛️",
+  "Geography": "🌍",
+  "Economics": "📈",
+  "Commerce": "🏪",
+  "Accounting": "💼",
+  "Business Studies": "💼",
+  "Business": "💼",
+  "Computer Science": "💻",
+  "Information & Communication Technology": "🖥️",
+  "Information Technology": "🖥️",
+  "Design & Technology": "⚙️",
+  "Food & Nutrition": "🍽️",
+  "Art & Design": "🎨",
+  "Islamiyat": "☪️",
+  "Pakistan Studies": "🇵🇰",
+  "Sociology": "👥",
+  "Environmental Management": "🌱",
+  "Law": "⚖️",
+  "Psychology": "🧠",
+  "Thinking Skills": "💡",
+  "General Paper": "📰",
+  "Urdu": "🔤",
+  "Bengali": "🔤",
+  "Arabic": "🔤",
+  "Chinese": "🔤",
+  "Chinese Language": "🔤",
+  "Malay": "🔤",
+  "French": "🇫🇷",
+  "Tamil": "🔤",
+};
+
+export function getSubjectsForLevel(level: string): readonly string[] {
+  return level === "O Level" ? O_LEVEL_SUBJECTS : A_LEVEL_SUBJECTS;
+}

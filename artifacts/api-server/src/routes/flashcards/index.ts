@@ -53,7 +53,7 @@ router.post("/flashcard-sets/generate", async (req, res): Promise<void> => {
   const cardCount = count ?? 10;
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-5.4",
+    model: "gpt-4o",
     max_completion_tokens: 8192,
     messages: [
       {

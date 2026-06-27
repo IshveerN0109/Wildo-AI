@@ -62,7 +62,7 @@ router.post("/notes/generate", async (req, res): Promise<void> => {
   const { subject, level, topic } = parsed.data;
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-5.4",
+    model: "gpt-4o",
     max_completion_tokens: 8192,
     messages: [
       {
