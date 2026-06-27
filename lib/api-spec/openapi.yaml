@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Cambridge AI Tutor API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: openai
+    description: OpenAI AI chat operations
+  - name: notes
+    description: Study notes operations
+  - name: flashcards
+    description: Flashcard sets for revision
+  - name: stats
+    description: Study progress statistics
 paths:
   /healthz:
     get:
@@ -24,6 +32,357 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /openai/conversations:
+    get:
+      operationId: listOpenaiConversations
+      tags: [openai]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiConversation"
+    post:
+      operationId: createOpenaiConversation
+      tags: [openai]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiConversationInput"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversation"
+
+  /openai/conversations/{id}:
+    get:
+      operationId: getOpenaiConversation
+      tags: [openai]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+    delete:
+      operationId: deleteOpenaiConversation
+      tags: [openai]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+
+  /openai/conversations/{id}/messages:
+    get:
+      operationId: listOpenaiMessages
+      tags: [openai]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiMessage"
+    post:
+      operationId: sendOpenaiMessage
+      tags: [openai]
+      summary: Send a text message and receive a streaming text response
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiMessageInput"
+      responses:
+        "200":
+          description: SSE stream of assistant text chunks
+          content:
+            text/event-stream: {}
+
+  /notes:
+    get:
+      operationId: listNotes
+      tags: [notes]
+      summary: List all notes
+      parameters:
+        - name: subject
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: level
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Note"
+    post:
+      operationId: createNote
+      tags: [notes]
+      summary: Create a new note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteInput"
+      responses:
+        "201":
+          description: Created note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Note"
+
+  /notes/{id}:
+    get:
+      operationId: getNote
+      tags: [notes]
+      summary: Get a single note
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Note"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateNote
+      tags: [notes]
+      summary: Update a note
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteUpdate"
+      responses:
+        "200":
+          description: Updated note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Note"
+    delete:
+      operationId: deleteNote
+      tags: [notes]
+      summary: Delete a note
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /notes/generate:
+    post:
+      operationId: generateNote
+      tags: [notes]
+      summary: AI-generate notes for a topic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteGenerateInput"
+      responses:
+        "201":
+          description: Generated note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Note"
+
+  /flashcard-sets:
+    get:
+      operationId: listFlashcardSets
+      tags: [flashcards]
+      summary: List all flashcard sets
+      responses:
+        "200":
+          description: List of flashcard sets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FlashcardSet"
+    post:
+      operationId: createFlashcardSet
+      tags: [flashcards]
+      summary: Create a new flashcard set
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FlashcardSetInput"
+      responses:
+        "201":
+          description: Created flashcard set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlashcardSet"
+
+  /flashcard-sets/{id}:
+    get:
+      operationId: getFlashcardSet
+      tags: [flashcards]
+      summary: Get flashcard set with cards
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Flashcard set with cards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlashcardSetWithCards"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteFlashcardSet
+      tags: [flashcards]
+      summary: Delete a flashcard set
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /flashcard-sets/generate:
+    post:
+      operationId: generateFlashcardSet
+      tags: [flashcards]
+      summary: AI-generate a flashcard set for a topic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FlashcardGenerateInput"
+      responses:
+        "201":
+          description: Generated flashcard set with cards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlashcardSetWithCards"
+
+  /stats/summary:
+    get:
+      operationId: getStudySummary
+      tags: [stats]
+      summary: Get study summary stats
+      responses:
+        "200":
+          description: Study stats summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudySummary"
+
+  /stats/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [stats]
+      summary: Get recent study activity
+      responses:
+        "200":
+          description: Recent activity items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +393,341 @@ components:
       required:
         - status
 
+    OpenaiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        subject:
+          type: ["string", "null"]
+        level:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+
+    OpenaiConversationInput:
+      type: object
+      properties:
+        title:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+      required:
+        - title
+
+    OpenaiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        subject:
+          type: ["string", "null"]
+        level:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenaiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+
+    OpenaiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+
+    OpenaiMessageInput:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    OpenaiVoiceMessageInput:
+      type: object
+      properties:
+        audio:
+          type: string
+      required:
+        - audio
+
+    OpenaiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Note:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - content
+        - subject
+        - level
+        - createdAt
+        - updatedAt
+
+    NoteInput:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: string
+      required:
+        - title
+        - content
+        - subject
+        - level
+
+    NoteUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: string
+
+    NoteGenerateInput:
+      type: object
+      properties:
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: string
+      required:
+        - subject
+        - level
+        - topic
+
+    FlashcardSet:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: ["string", "null"]
+        cardCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - subject
+        - level
+        - cardCount
+        - createdAt
+
+    FlashcardSetInput:
+      type: object
+      properties:
+        title:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: string
+      required:
+        - title
+        - subject
+        - level
+
+    FlashcardSetWithCards:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: ["string", "null"]
+        cardCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Flashcard"
+      required:
+        - id
+        - title
+        - subject
+        - level
+        - cardCount
+        - createdAt
+        - cards
+
+    Flashcard:
+      type: object
+      properties:
+        id:
+          type: integer
+        setId:
+          type: integer
+        question:
+          type: string
+        answer:
+          type: string
+        hint:
+          type: ["string", "null"]
+      required:
+        - id
+        - setId
+        - question
+        - answer
+
+    FlashcardGenerateInput:
+      type: object
+      properties:
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: string
+        count:
+          type: integer
+      required:
+        - subject
+        - level
+        - topic
+
+    StudySummary:
+      type: object
+      properties:
+        totalNotes:
+          type: integer
+        totalFlashcardSets:
+          type: integer
+        totalConversations:
+          type: integer
+        subjectBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubjectCount"
+      required:
+        - totalNotes
+        - totalFlashcardSets
+        - totalConversations
+        - subjectBreakdown
+
+    SubjectCount:
+      type: object
+      properties:
+        subject:
+          type: string
+        count:
+          type: integer
+      required:
+        - subject
+        - count
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        title:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - title
+        - subject
+        - level
+        - createdAt
