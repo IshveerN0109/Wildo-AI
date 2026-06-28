@@ -1,19 +1,27 @@
 import { Link, useLocation } from "wouter";
-import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown } from "lucide-react";
+import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User } from "lucide-react";
 import { useStudent } from "@/contexts/StudentContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { level, clearLevel } = useStudent();
+  const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
   const [showLevelMenu, setShowLevelMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/tutor", label: "AI Tutor", icon: Brain },
     { href: "/notes", label: "Notes", icon: BookOpen },
     { href: "/flashcards", label: "Flashcards", icon: Library },
+    { href: "/revision", label: "Revision Mode", icon: GraduationCap },
   ];
+
+  const displayName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "Student"
+    : null;
 
   return (
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
@@ -28,6 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           )}
         </div>
+
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -43,7 +52,53 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border/50">
+        <div className="p-4 border-t border-sidebar-border/50 space-y-2">
+          {!authLoading && (
+            <div className="relative">
+              {isAuthenticated && user ? (
+                <>
+                  <button
+                    onClick={() => setShowUserMenu(v => !v)}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md hover:bg-sidebar-accent/50 transition-colors"
+                  >
+                    {user.profileImageUrl ? (
+                      <img src={user.profileImageUrl} alt={displayName ?? ""} className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <User className="w-4 h-4 text-primary" />
+                      </div>
+                    )}
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p>
+                      {user.email && <p className="text-xs text-sidebar-foreground/50 truncate">{user.email}</p>}
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-sidebar-foreground/50 flex-shrink-0 transition-transform ${showUserMenu ? "rotate-180" : ""}`} />
+                  </button>
+                  {showUserMenu && (
+                    <div className="absolute bottom-full mb-1 left-0 right-0 bg-card border rounded-lg shadow-lg overflow-hidden z-50">
+                      <p className="px-3 py-2 text-xs text-muted-foreground font-medium border-b">Account</p>
+                      <button
+                        onClick={logout}
+                        className="w-full text-left px-3 py-2.5 text-sm hover:bg-accent transition-colors flex items-center gap-2 text-destructive font-medium"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <button
+                  onClick={login}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md bg-primary/10 hover:bg-primary/20 text-primary transition-colors text-sm font-medium"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign in to save progress
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="relative">
             <button
               onClick={() => setShowLevelMenu(v => !v)}
@@ -69,6 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </aside>
+
       <main className="flex-1 flex flex-col overflow-hidden bg-background">
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-5xl mx-auto h-full">

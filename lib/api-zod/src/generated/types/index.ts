@@ -7,13 +7,22 @@
  */
 
 export * from './activityItem';
+export * from './authorizationSessionHeaderParameter';
+export * from './authUser';
+export * from './authUserEnvelope';
+export * from './beginBrowserLoginParams';
+export * from './errorEnvelope';
 export * from './flashcard';
 export * from './flashcardGenerateInput';
 export * from './flashcardSet';
 export * from './flashcardSetInput';
 export * from './flashcardSetWithCards';
+export * from './handleBrowserLoginCallbackParams';
 export * from './healthStatus';
 export * from './listNotesParams';
+export * from './logoutSuccess';
+export * from './mobileTokenExchangeRequest';
+export * from './mobileTokenExchangeSuccess';
 export * from './note';
 export * from './noteGenerateInput';
 export * from './noteInput';

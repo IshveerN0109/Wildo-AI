@@ -276,4 +276,45 @@ router.post("/openai/conversations/:id/messages", async (req, res): Promise<void
   res.end();
 });
 
+router.post("/openai/revision-stream", async (req, res): Promise<void> => {
+  const { messages: msgs, system } = req.body as {
+    messages: { role: string; content: string }[];
+    system?: string;
+  };
+
+  if (!Array.isArray(msgs)) {
+    res.status(400).json({ error: "messages must be an array" });
+    return;
+  }
+
+  const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+    { role: "system", content: system ?? CAMBRIDGE_SYSTEM_PROMPT },
+    ...msgs.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    })),
+  ];
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const stream = await openai.chat.completions.create({
+    model: "gpt-4o",
+    max_completion_tokens: 8192,
+    messages: chatMessages,
+    stream: true,
+  });
+
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content;
+    if (content) {
+      res.write(`data: ${JSON.stringify({ content })}\n\n`);
+    }
+  }
+
+  res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+  res.end();
+});
+
 export default router;
