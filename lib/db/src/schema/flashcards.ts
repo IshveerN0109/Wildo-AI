@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 export const flashcardSetsTable = pgTable("flashcard_sets", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   title: text("title").notNull(),
   subject: text("subject").notNull(),
   level: text("level").notNull(),

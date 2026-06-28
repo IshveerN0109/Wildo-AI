@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { db, flashcardSetsTable, flashcardsTable } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import {
@@ -11,8 +11,19 @@ import {
 
 const router: IRouter = Router();
 
-router.get("/flashcard-sets", async (_req, res): Promise<void> => {
-  const sets = await db.select().from(flashcardSetsTable).orderBy(flashcardSetsTable.createdAt);
+function userFilter(req: Parameters<Parameters<typeof router.get>[1]>[0]) {
+  return req.isAuthenticated()
+    ? eq(flashcardSetsTable.userId, req.user.id)
+    : isNull(flashcardSetsTable.userId);
+}
+
+router.get("/flashcard-sets", async (req, res): Promise<void> => {
+  const sets = await db
+    .select()
+    .from(flashcardSetsTable)
+    .where(userFilter(req))
+    .orderBy(flashcardSetsTable.createdAt);
+
   const cards = await db.select().from(flashcardsTable);
 
   const cardCounts: Record<number, number> = {};
@@ -33,6 +44,7 @@ router.post("/flashcard-sets", async (req, res): Promise<void> => {
   const [set] = await db
     .insert(flashcardSetsTable)
     .values({
+      userId: req.isAuthenticated() ? req.user.id : null,
       title: parsed.data.title,
       subject: parsed.data.subject,
       level: parsed.data.level,
@@ -90,7 +102,13 @@ FLASHCARD RULES:
   const title = `${topic} — ${subject} (${level})`;
   const [set] = await db
     .insert(flashcardSetsTable)
-    .values({ title, subject, level, topic })
+    .values({
+      userId: req.isAuthenticated() ? req.user.id : null,
+      title,
+      subject,
+      level,
+      topic,
+    })
     .returning();
 
   const insertedCards =
@@ -120,7 +138,7 @@ router.get("/flashcard-sets/:id", async (req, res): Promise<void> => {
   const [set] = await db
     .select()
     .from(flashcardSetsTable)
-    .where(eq(flashcardSetsTable.id, params.data.id));
+    .where(and(eq(flashcardSetsTable.id, params.data.id), userFilter(req)));
   if (!set) {
     res.status(404).json({ error: "Flashcard set not found" });
     return;
@@ -140,7 +158,7 @@ router.delete("/flashcard-sets/:id", async (req, res): Promise<void> => {
   }
   const [deleted] = await db
     .delete(flashcardSetsTable)
-    .where(eq(flashcardSetsTable.id, params.data.id))
+    .where(and(eq(flashcardSetsTable.id, params.data.id), userFilter(req)))
     .returning();
   if (!deleted) {
     res.status(404).json({ error: "Flashcard set not found" });

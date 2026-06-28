@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { db, notesTable } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import {
@@ -14,6 +14,12 @@ import {
 
 const router: IRouter = Router();
 
+function userFilter(req: Parameters<Parameters<typeof router.get>[1]>[0]) {
+  return req.isAuthenticated()
+    ? eq(notesTable.userId, req.user.id)
+    : isNull(notesTable.userId);
+}
+
 router.get("/notes", async (req, res): Promise<void> => {
   const query = ListNotesQueryParams.safeParse(req.query);
   if (!query.success) {
@@ -21,15 +27,15 @@ router.get("/notes", async (req, res): Promise<void> => {
     return;
   }
 
-  let q = db.select().from(notesTable).$dynamic();
-  if (query.data.subject) {
-    q = q.where(eq(notesTable.subject, query.data.subject));
-  }
-  if (query.data.level) {
-    q = q.where(eq(notesTable.level, query.data.level));
-  }
+  const conditions = [userFilter(req)];
+  if (query.data.subject) conditions.push(eq(notesTable.subject, query.data.subject));
+  if (query.data.level) conditions.push(eq(notesTable.level, query.data.level));
 
-  const notes = await q.orderBy(notesTable.updatedAt);
+  const notes = await db
+    .select()
+    .from(notesTable)
+    .where(and(...conditions))
+    .orderBy(notesTable.updatedAt);
   res.json(notes);
 });
 
@@ -42,6 +48,7 @@ router.post("/notes", async (req, res): Promise<void> => {
   const [note] = await db
     .insert(notesTable)
     .values({
+      userId: req.isAuthenticated() ? req.user.id : null,
       title: parsed.data.title,
       content: parsed.data.content,
       subject: parsed.data.subject,
@@ -115,7 +122,14 @@ ACCURACY RULES:
 
   const [note] = await db
     .insert(notesTable)
-    .values({ title, content, subject, level, topic })
+    .values({
+      userId: req.isAuthenticated() ? req.user.id : null,
+      title,
+      content,
+      subject,
+      level,
+      topic,
+    })
     .returning();
 
   res.status(201).json(note);
@@ -130,7 +144,7 @@ router.get("/notes/:id", async (req, res): Promise<void> => {
   const [note] = await db
     .select()
     .from(notesTable)
-    .where(eq(notesTable.id, params.data.id));
+    .where(and(eq(notesTable.id, params.data.id), userFilter(req)));
   if (!note) {
     res.status(404).json({ error: "Note not found" });
     return;
@@ -152,7 +166,7 @@ router.patch("/notes/:id", async (req, res): Promise<void> => {
   const [note] = await db
     .update(notesTable)
     .set({ ...body.data, updatedAt: new Date() })
-    .where(eq(notesTable.id, params.data.id))
+    .where(and(eq(notesTable.id, params.data.id), userFilter(req)))
     .returning();
   if (!note) {
     res.status(404).json({ error: "Note not found" });
@@ -169,7 +183,7 @@ router.delete("/notes/:id", async (req, res): Promise<void> => {
   }
   const [deleted] = await db
     .delete(notesTable)
-    .where(eq(notesTable.id, params.data.id))
+    .where(and(eq(notesTable.id, params.data.id), userFilter(req)))
     .returning();
   if (!deleted) {
     res.status(404).json({ error: "Note not found" });
