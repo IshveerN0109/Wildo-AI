@@ -13,6 +13,81 @@ import {
 
 const router: IRouter = Router();
 
+// ─── Cambridge Verification Pipeline ────────────────────────────────────────
+
+interface VerificationResult {
+  syllabusRef: string | null;
+  markSchemePoints: string[];
+  confidence: "high" | "medium" | "low";
+  examinerNote: string | null;
+}
+
+async function verifyQuestion(
+  question: string,
+  subject: string | null,
+  level: string | null,
+): Promise<VerificationResult> {
+  const subjectCtx = [subject, level].filter(Boolean).join(" ") || "unknown subject";
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      max_completion_tokens: 220,
+      temperature: 0,
+      messages: [
+        {
+          role: "user",
+          content: `You are a Cambridge International Examinations expert. A student studying ${subjectCtx} has asked or is about to receive a response to:
+
+"${question.slice(0, 400)}"
+
+Respond with ONLY valid JSON — no markdown fences, no explanation:
+{
+  "syllabusRef": "exact syllabus code + learning objective (e.g. 'Physics 9702 LO 5.1.3') or null if you cannot confirm it precisely",
+  "markSchemePoints": ["what examiners actually award marks for — max 4 bullet points — use Cambridge mark-scheme language"],
+  "confidence": "high if you are certain of the exact mark scheme, medium if mostly certain, low if genuinely uncertain",
+  "examinerNote": "relevant warning from Cambridge examiner reports (e.g. common errors, misconceptions examiners flag) or null"
+}
+
+CRITICAL: Do NOT invent syllabus references. If uncertain, set syllabusRef to null and confidence to low. Accuracy over confidence.`,
+        },
+      ],
+    });
+    const raw = (response.choices[0]?.message?.content ?? "{}").trim();
+    const parsed = JSON.parse(raw.replace(/^```json\n?/, "").replace(/\n?```$/, ""));
+    return {
+      syllabusRef: typeof parsed.syllabusRef === "string" ? parsed.syllabusRef : null,
+      markSchemePoints: Array.isArray(parsed.markSchemePoints) ? parsed.markSchemePoints.slice(0, 4) : [],
+      confidence: (["high", "medium", "low"] as const).includes(parsed.confidence) ? parsed.confidence : "medium",
+      examinerNote: typeof parsed.examinerNote === "string" ? parsed.examinerNote : null,
+    };
+  } catch {
+    return { syllabusRef: null, markSchemePoints: [], confidence: "medium", examinerNote: null };
+  }
+}
+
+function buildVerificationContext(v: VerificationResult): string {
+  const parts: string[] = [
+    "════════════════════════════════",
+    "VERIFICATION CONTEXT (checked before answering)",
+    "════════════════════════════════",
+  ];
+  if (v.syllabusRef) parts.push(`Syllabus reference: ${v.syllabusRef}`);
+  if (v.markSchemePoints.length > 0) {
+    parts.push("Mark scheme key points:");
+    v.markSchemePoints.forEach((p) => parts.push(`  • ${p}`));
+  }
+  parts.push(`Confidence in mark scheme: ${v.confidence.toUpperCase()}`);
+  if (v.examinerNote) parts.push(`Examiner report note: ${v.examinerNote}`);
+  parts.push(
+    v.confidence === "low"
+      ? "INSTRUCTION: Explicitly tell the student you are not certain of the exact mark scheme for this. Advise them to verify with official Cambridge past paper mark schemes at cambridgeinternational.org. Still give your best answer but be transparent about uncertainty."
+      : "INSTRUCTION: Use these mark scheme points to frame your answer. Align your response to what Cambridge examiners actually award marks for.",
+  );
+  return parts.join("\n");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
 function userFilter(req: Parameters<Parameters<typeof router.get>[1]>[0]) {
   return req.isAuthenticated()
     ? eq(conversations.userId, req.user.id)
@@ -251,12 +326,17 @@ router.post("/openai/conversations/:id/messages", async (req, res): Promise<void
     .where(eq(messages.conversationId, params.data.id))
     .orderBy(messages.createdAt);
 
+  // Phase 1: fast verification (runs before streaming starts)
+  const verification = await verifyQuestion(body.data.content, conv.subject, conv.level);
+
   const subjectContext = conv.subject
     ? ` Focus on ${conv.subject} at ${conv.level ?? "Cambridge"} level.`
     : "";
 
+  const verificationContext = buildVerificationContext(verification);
+
   const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-    { role: "system", content: CAMBRIDGE_SYSTEM_PROMPT + subjectContext },
+    { role: "system", content: CAMBRIDGE_SYSTEM_PROMPT + subjectContext + "\n\n" + verificationContext },
     ...history.map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
@@ -266,6 +346,9 @@ router.post("/openai/conversations/:id/messages", async (req, res): Promise<void
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
+
+  // Send verification metadata to frontend before content starts
+  res.write(`data: ${JSON.stringify({ type: "verification", ...verification })}\n\n`);
 
   let fullResponse = "";
   const stream = await openai.chat.completions.create({
@@ -294,9 +377,11 @@ router.post("/openai/conversations/:id/messages", async (req, res): Promise<void
 });
 
 router.post("/openai/revision-stream", async (req, res): Promise<void> => {
-  const { messages: msgs, system } = req.body as {
+  const { messages: msgs, system, subject, level } = req.body as {
     messages: { role: string; content: string }[];
     system?: string;
+    subject?: string;
+    level?: string;
   };
 
   if (!Array.isArray(msgs)) {
@@ -304,8 +389,16 @@ router.post("/openai/revision-stream", async (req, res): Promise<void> => {
     return;
   }
 
+  // Phase 1: verify the latest user message
+  const lastUserMsg = [...msgs].reverse().find((m) => m.role === "user");
+  const verification = lastUserMsg
+    ? await verifyQuestion(lastUserMsg.content, subject ?? null, level ?? null)
+    : { syllabusRef: null, markSchemePoints: [], confidence: "high" as const, examinerNote: null };
+
+  const verificationContext = buildVerificationContext(verification);
+
   const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-    { role: "system", content: system ?? CAMBRIDGE_SYSTEM_PROMPT },
+    { role: "system", content: (system ?? CAMBRIDGE_SYSTEM_PROMPT) + "\n\n" + verificationContext },
     ...msgs.map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
@@ -315,6 +408,9 @@ router.post("/openai/revision-stream", async (req, res): Promise<void> => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
+
+  // Send verification metadata before content stream
+  res.write(`data: ${JSON.stringify({ type: "verification", ...verification })}\n\n`);
 
   const stream = await openai.chat.completions.create({
     model: "gpt-4o",

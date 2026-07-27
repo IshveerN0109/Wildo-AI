@@ -1,13 +1,52 @@
 import { useState, useRef, useEffect } from "react";
-import { GraduationCap, BookOpen, ChevronRight, RotateCcw, Send, Loader2, BookMarked } from "lucide-react";
+import { GraduationCap, BookOpen, ChevronRight, RotateCcw, Send, Loader2, BookMarked, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useStudent } from "@/contexts/StudentContext";
 import { O_LEVEL_SUBJECTS, A_LEVEL_SUBJECTS, SUBJECT_EMOJIS } from "@/lib/constants";
+
+interface Verification {
+  syllabusRef: string | null;
+  markSchemePoints: string[];
+  confidence: "high" | "medium" | "low";
+  examinerNote: string | null;
+}
+
+function VerificationBadge({ v, loading }: { v: Verification | null; loading: boolean }) {
+  if (loading) return (
+    <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
+      <Loader2 className="w-3 h-3 animate-spin" />
+      <span>Checking Cambridge syllabus &amp; mark scheme…</span>
+    </div>
+  );
+  if (!v) return null;
+  const isLow = v.confidence === "low";
+  return (
+    <div className={`mt-3 rounded-lg border px-3 py-2 text-xs space-y-1 ${isLow ? "border-amber-300 bg-amber-50 dark:bg-amber-950/30" : "border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30"}`}>
+      <div className="flex items-center gap-1.5 font-medium flex-wrap">
+        {isLow
+          ? <ShieldAlert className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          : <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+        <span className={isLow ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"}>
+          {isLow ? "Uncertain — verify with official Cambridge materials" : `Verified · ${v.confidence} confidence`}
+        </span>
+        {v.syllabusRef && <span className="ml-auto font-normal text-muted-foreground">{v.syllabusRef}</span>}
+      </div>
+      {isLow && (
+        <p className="text-amber-600 dark:text-amber-400">
+          Wildo isn't fully certain about the exact mark scheme here. Cross-check at <a href="https://cambridgeinternational.org" target="_blank" rel="noreferrer" className="underline">cambridgeinternational.org</a>.
+        </p>
+      )}
+      {v.examinerNote && <p className="text-muted-foreground italic">📋 Examiner note: {v.examinerNote}</p>}
+    </div>
+  );
+}
 
 type RevisionMode = "whole-book" | "chapter";
 
 interface Message {
   role: "assistant" | "user";
   content: string;
+  verification?: Verification | null;
+  verifying?: boolean;
 }
 
 const CHAPTER_SUGGESTIONS: Record<string, string[]> = {
@@ -93,14 +132,14 @@ Be encouraging and thorough.`;
     const system = systemOverride ?? `You are an expert Cambridge ${level} ${subject} tutor helping with a structured revision session covering ${scope}. Be concise, exam-focused, and use Cambridge command words.`;
 
     setIsStreaming(true);
-    const assistantPlaceholder: Message = { role: "assistant", content: "" };
+    const assistantPlaceholder: Message = { role: "assistant", content: "", verifying: true, verification: null };
     setMessages(prev => [...prev, assistantPlaceholder]);
 
     try {
       const response = await fetch("/api/openai/revision-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, system }),
+        body: JSON.stringify({ messages: newMessages, system, subject, level }),
         credentials: "include",
       });
 
@@ -120,12 +159,20 @@ Be encouraging and thorough.`;
             const data = line.slice(6).trim();
             try {
               const parsed = JSON.parse(data);
+              if (parsed.type === "verification") {
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { ...updated[updated.length - 1], verification: parsed as Verification, verifying: false };
+                  return updated;
+                });
+                continue;
+              }
               if (parsed.done) break;
               const delta = parsed.content ?? "";
               accumulated += delta;
               setMessages(prev => {
                 const updated = [...prev];
-                updated[updated.length - 1] = { role: "assistant", content: accumulated };
+                updated[updated.length - 1] = { ...updated[updated.length - 1], content: accumulated };
                 return updated;
               });
             } catch {}
@@ -135,7 +182,7 @@ Be encouraging and thorough.`;
     } catch {
       setMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: "assistant", content: "Sorry, something went wrong. Please try again." };
+        updated[updated.length - 1] = { role: "assistant", content: "Sorry, something went wrong. Please try again.", verifying: false };
         return updated;
       });
     } finally {
@@ -316,6 +363,7 @@ Be encouraging and thorough.`;
                     <span className="text-sm">Preparing revision content...</span>
                   </div>
                 )}
+                <VerificationBadge v={msg.verification ?? null} loading={msg.verifying ?? false} />
               </div>
             ) : (
               <div className="max-w-[80%] bg-primary text-primary-foreground rounded-xl px-4 py-3 text-sm">

@@ -11,9 +11,46 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Plus, Brain } from "lucide-react";
+import { Send, Plus, Brain, ShieldCheck, ShieldAlert, Loader2 } from "lucide-react";
 import { SUBJECT_EMOJIS } from "@/lib/constants";
 import { useStudent } from "@/contexts/StudentContext";
+
+interface Verification {
+  syllabusRef: string | null;
+  markSchemePoints: string[];
+  confidence: "high" | "medium" | "low";
+  examinerNote: string | null;
+}
+
+function VerificationBadge({ v, loading }: { v: Verification | null; loading: boolean }) {
+  if (loading) return (
+    <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+      <Loader2 className="w-3 h-3 animate-spin" />
+      <span>Checking Cambridge syllabus &amp; mark scheme…</span>
+    </div>
+  );
+  if (!v) return null;
+  const isLow = v.confidence === "low";
+  return (
+    <div className={`mt-2 rounded-lg border px-3 py-2 text-xs space-y-1 ${isLow ? "border-amber-300 bg-amber-50 dark:bg-amber-950/30" : "border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30"}`}>
+      <div className="flex items-center gap-1.5 font-medium">
+        {isLow
+          ? <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
+          : <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
+        <span className={isLow ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"}>
+          {isLow ? "Uncertain — verify with official Cambridge materials" : `Verified · ${v.confidence} confidence`}
+        </span>
+        {v.syllabusRef && <span className="ml-auto font-normal text-muted-foreground">{v.syllabusRef}</span>}
+      </div>
+      {isLow && (
+        <p className="text-amber-600 dark:text-amber-400">
+          Wildo isn't fully certain about the exact mark scheme here. Always cross-check with official Cambridge past paper mark schemes at <a href="https://cambridgeinternational.org" target="_blank" rel="noreferrer" className="underline">cambridgeinternational.org</a>.
+        </p>
+      )}
+      {v.examinerNote && <p className="text-muted-foreground italic">📋 Examiner note: {v.examinerNote}</p>}
+    </div>
+  );
+}
 
 export default function Tutor() {
   const queryClient = useQueryClient();
@@ -24,6 +61,8 @@ export default function Tutor() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamedResponse, setStreamedResponse] = useState("");
   const [newSubject, setNewSubject] = useState("");
+  const [verification, setVerification] = useState<Verification | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   const { data: conversations } = useListOpenaiConversations();
   const createConvo = useCreateOpenaiConversation();
@@ -67,6 +106,8 @@ export default function Tutor() {
     setInput("");
     setIsStreaming(true);
     setStreamedResponse("");
+    setVerification(null);
+    setVerifying(true);
 
     queryClient.setQueryData(getListOpenaiMessagesQueryKey(activeConversationId), (old: any) => {
       const tempMsg = { id: Date.now(), conversationId: activeConversationId, role: "user", content: messageContent, createdAt: new Date().toISOString() };
@@ -92,6 +133,10 @@ export default function Tutor() {
           if (!line.trim().startsWith("data: ")) continue;
           try {
             const data = JSON.parse(line.replace("data: ", "").trim());
+            if (data.type === "verification") {
+              setVerification(data as Verification);
+              setVerifying(false);
+            }
             if (data.content) setStreamedResponse(prev => prev + data.content);
             if (data.done) {
               queryClient.invalidateQueries({ queryKey: getListOpenaiMessagesQueryKey(activeConversationId) });
@@ -104,6 +149,7 @@ export default function Tutor() {
     } catch {
       setIsStreaming(false);
       setStreamedResponse("");
+      setVerifying(false);
     }
   };
 
@@ -232,16 +278,20 @@ export default function Tutor() {
                         dangerouslySetInnerHTML={{ __html: formatMessage(streamedResponse) }}
                       />
                       <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-0.5 rounded" />
+                      <VerificationBadge v={verification} loading={verifying} />
                     </div>
                   </div>
                 )}
                 {isStreaming && !streamedResponse && (
                   <div className="flex justify-start">
                     <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-sm mr-2 flex-shrink-0">🎓</div>
-                    <div className="rounded-2xl rounded-bl-sm px-4 py-3 bg-muted flex gap-1.5 items-center">
-                      <span className="w-2 h-2 rounded-full bg-primary/50 animate-bounce [animation-delay:0ms]" />
-                      <span className="w-2 h-2 rounded-full bg-primary/50 animate-bounce [animation-delay:150ms]" />
-                      <span className="w-2 h-2 rounded-full bg-primary/50 animate-bounce [animation-delay:300ms]" />
+                    <div className="rounded-2xl rounded-bl-sm px-4 py-3 bg-muted space-y-2">
+                      <div className="flex gap-1.5 items-center">
+                        <span className="w-2 h-2 rounded-full bg-primary/50 animate-bounce [animation-delay:0ms]" />
+                        <span className="w-2 h-2 rounded-full bg-primary/50 animate-bounce [animation-delay:150ms]" />
+                        <span className="w-2 h-2 rounded-full bg-primary/50 animate-bounce [animation-delay:300ms]" />
+                      </div>
+                      <VerificationBadge v={null} loading={verifying} />
                     </div>
                   </div>
                 )}
