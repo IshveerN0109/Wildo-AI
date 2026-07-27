@@ -1,17 +1,23 @@
 import { Router, type IRouter } from "express";
 import { db, notesTable, flashcardSetsTable, conversations } from "@workspace/db";
-import { desc, sql } from "drizzle-orm";
+import { desc, sql, eq, isNull, and } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-router.get("/stats/summary", async (_req, res): Promise<void> => {
-  const [noteCount] = await db.select({ count: sql<number>`count(*)::int` }).from(notesTable);
-  const [setCount] = await db.select({ count: sql<number>`count(*)::int` }).from(flashcardSetsTable);
-  const [convCount] = await db.select({ count: sql<number>`count(*)::int` }).from(conversations);
+router.get("/stats/summary", async (req, res): Promise<void> => {
+  const uid = req.isAuthenticated() ? req.user.id : null;
+  const noteFilter = uid ? eq(notesTable.userId, uid) : isNull(notesTable.userId);
+  const setFilter = uid ? eq(flashcardSetsTable.userId, uid) : isNull(flashcardSetsTable.userId);
+  const convFilter = uid ? eq(conversations.userId, uid) : isNull(conversations.userId);
+
+  const [noteCount] = await db.select({ count: sql<number>`count(*)::int` }).from(notesTable).where(noteFilter);
+  const [setCount] = await db.select({ count: sql<number>`count(*)::int` }).from(flashcardSetsTable).where(setFilter);
+  const [convCount] = await db.select({ count: sql<number>`count(*)::int` }).from(conversations).where(convFilter);
 
   const subjectRows = await db
     .select({ subject: notesTable.subject, count: sql<number>`count(*)::int` })
     .from(notesTable)
+    .where(noteFilter)
     .groupBy(notesTable.subject);
 
   res.json({
@@ -22,22 +28,30 @@ router.get("/stats/summary", async (_req, res): Promise<void> => {
   });
 });
 
-router.get("/stats/recent-activity", async (_req, res): Promise<void> => {
+router.get("/stats/recent-activity", async (req, res): Promise<void> => {
+  const uid = req.isAuthenticated() ? req.user.id : null;
+  const noteFilter = uid ? eq(notesTable.userId, uid) : isNull(notesTable.userId);
+  const setFilter = uid ? eq(flashcardSetsTable.userId, uid) : isNull(flashcardSetsTable.userId);
+  const convFilter = uid ? eq(conversations.userId, uid) : isNull(conversations.userId);
+
   const recentNotes = await db
     .select()
     .from(notesTable)
+    .where(noteFilter)
     .orderBy(desc(notesTable.createdAt))
     .limit(5);
 
   const recentSets = await db
     .select()
     .from(flashcardSetsTable)
+    .where(setFilter)
     .orderBy(desc(flashcardSetsTable.createdAt))
     .limit(5);
 
   const recentConvs = await db
     .select()
     .from(conversations)
+    .where(convFilter)
     .orderBy(desc(conversations.createdAt))
     .limit(5);
 

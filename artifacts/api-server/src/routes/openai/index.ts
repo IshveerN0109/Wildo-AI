@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { db, conversations, messages } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import {
@@ -12,6 +12,12 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+function userFilter(req: Parameters<Parameters<typeof router.get>[1]>[0]) {
+  return req.isAuthenticated()
+    ? eq(conversations.userId, req.user.id)
+    : isNull(conversations.userId);
+}
 
 const CAMBRIDGE_SYSTEM_PROMPT = `You are CamAI — an elite AI study tutor built exclusively for Cambridge International Examinations (O Level and A Level). You are not a generic AI. You know the Cambridge system inside out.
 
@@ -123,10 +129,11 @@ ALWAYS
 - Respond in the same language the student uses (English, Urdu, Arabic, Malay, etc.)`;
 
 
-router.get("/openai/conversations", async (_req, res): Promise<void> => {
+router.get("/openai/conversations", async (req, res): Promise<void> => {
   const convs = await db
     .select()
     .from(conversations)
+    .where(userFilter(req))
     .orderBy(conversations.createdAt);
   res.json(convs);
 });
@@ -143,6 +150,7 @@ router.post("/openai/conversations", async (req, res): Promise<void> => {
       title: parsed.data.title,
       subject: parsed.data.subject ?? null,
       level: parsed.data.level ?? null,
+      userId: req.isAuthenticated() ? req.user.id : null,
     })
     .returning();
   res.status(201).json(conv);
@@ -157,7 +165,7 @@ router.get("/openai/conversations/:id", async (req, res): Promise<void> => {
   const [conv] = await db
     .select()
     .from(conversations)
-    .where(eq(conversations.id, params.data.id));
+    .where(and(eq(conversations.id, params.data.id), userFilter(req)));
   if (!conv) {
     res.status(404).json({ error: "Conversation not found" });
     return;
@@ -178,7 +186,7 @@ router.delete("/openai/conversations/:id", async (req, res): Promise<void> => {
   }
   const [deleted] = await db
     .delete(conversations)
-    .where(eq(conversations.id, params.data.id))
+    .where(and(eq(conversations.id, params.data.id), userFilter(req)))
     .returning();
   if (!deleted) {
     res.status(404).json({ error: "Conversation not found" });
@@ -191,6 +199,15 @@ router.get("/openai/conversations/:id/messages", async (req, res): Promise<void>
   const params = ListOpenaiMessagesParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  // verify ownership before returning messages
+  const [conv] = await db
+    .select()
+    .from(conversations)
+    .where(and(eq(conversations.id, params.data.id), userFilter(req)));
+  if (!conv) {
+    res.status(404).json({ error: "Conversation not found" });
     return;
   }
   const msgs = await db
@@ -216,7 +233,7 @@ router.post("/openai/conversations/:id/messages", async (req, res): Promise<void
   const [conv] = await db
     .select()
     .from(conversations)
-    .where(eq(conversations.id, params.data.id));
+    .where(and(eq(conversations.id, params.data.id), userFilter(req)));
   if (!conv) {
     res.status(404).json({ error: "Conversation not found" });
     return;
