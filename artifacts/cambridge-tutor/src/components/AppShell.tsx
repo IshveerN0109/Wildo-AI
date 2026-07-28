@@ -26,10 +26,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
       <aside className="w-64 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex-shrink-0 flex flex-col hidden md:flex">
-        <div className="p-6 border-b border-sidebar-border/50">
-          <h1 className="text-xl font-bold text-sidebar-primary tracking-tight font-serif">Cambridge AI Tutor</h1>
+        <div className="p-5 border-b border-sidebar-border/50">
+          <div className="flex items-center gap-3">
+            <img
+              src="/cambridge-tutor/wildo-logo.png"
+              alt="Wildo logo"
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/30 flex-shrink-0"
+            />
+            <div>
+              <h1 className="text-lg font-bold text-sidebar-primary tracking-tight font-serif leading-tight">Wildo</h1>
+              <p className="text-[11px] text-sidebar-foreground/50 leading-tight">Cambridge AI Tutor</p>
+            </div>
+          </div>
           {level && (
-            <div className="mt-2">
+            <div className="mt-3">
               <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-primary/20 text-primary">
                 {level}
               </span>
@@ -121,6 +131,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Creator credit */}
+          <div className="pt-2 border-t border-sidebar-border/30 mt-1">
+            <div className="flex items-center gap-2 px-1 mb-1.5">
+              <img
+                src="/cambridge-tutor/wildo-logo.png"
+                alt="Wildo"
+                className="w-5 h-5 rounded-full object-cover opacity-70"
+              />
+              <span className="text-[11px] text-sidebar-foreground/40 font-medium">Wildo · Created by I.Nairoo</span>
+            </div>
+            <Link href="/terms">
+              <span className="text-[10px] text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors cursor-pointer px-1">
+                Terms & Conditions · Privacy Policy
+              </span>
+            </Link>
           </div>
         </div>
       </aside>
