@@ -111,3 +111,30 @@ export const SUBJECT_EMOJIS: Record<string, string> = {
 export function getSubjectsForLevel(level: string): readonly string[] {
   return level === "O Level" ? O_LEVEL_SUBJECTS : A_LEVEL_SUBJECTS;
 }
+
+export const CHAPTER_SUGGESTIONS: Record<string, string[]> = {
+  "Mathematics": ["Algebra", "Geometry", "Trigonometry", "Statistics & Probability", "Vectors", "Functions", "Number", "Calculus"],
+  "Additional Mathematics": ["Functions", "Quadratics", "Binomial Theorem", "Logarithms & Exponentials", "Trigonometry", "Calculus", "Vectors", "Matrices"],
+  "Further Mathematics": ["Complex Numbers", "Matrices", "Differential Equations", "Series & Induction", "Mechanics", "Statistics"],
+  "Physics": ["Mechanics", "Waves", "Electricity & Magnetism", "Thermal Physics", "Atomic & Nuclear", "Optics", "Circular Motion"],
+  "Chemistry": ["Atomic Structure", "Bonding", "Energetics", "Kinetics", "Equilibrium", "Organic Chemistry", "Electrochemistry", "Redox"],
+  "Biology": ["Cell Biology", "Genetics & Inheritance", "Ecology", "Respiration & Photosynthesis", "Human Physiology", "Evolution", "Reproduction"],
+  "Combined Science": ["Forces & Motion", "Waves", "Electricity", "Atoms", "Cells", "Genetics", "Reactions", "Chemical Equations"],
+  "Economics": ["Supply & Demand", "Market Structures", "Macroeconomics", "International Trade", "Monetary Policy", "Development Economics"],
+  "Business Studies": ["Business Organisation", "Marketing", "Finance", "Human Resources", "Operations Management"],
+  "Business": ["Strategy", "Marketing", "Finance", "Human Resources", "Operations", "Global Business"],
+  "Accounting": ["Financial Statements", "Ratio Analysis", "Cash Flow", "Budgeting", "Cost Accounting", "Ledger Accounts"],
+  "Computer Science": ["Data Representation", "Algorithms", "Programming", "Databases", "Networks", "Security", "OOP"],
+  "Information & Communication Technology": ["Applications", "Systems", "Networks", "Database", "Digital Literacy"],
+  "Information Technology": ["Systems", "Database", "Networks", "Project Management", "Security"],
+  "History": ["Causes of WWI", "Interwar Period", "WWII", "Cold War", "Decolonisation", "19th Century"],
+  "Geography": ["Plate Tectonics", "Rivers", "Coasts", "Population", "Development", "Climate Change", "Urbanisation"],
+  "English Language": ["Reading Comprehension", "Directed Writing", "Summary Skills", "Composition"],
+  "English Literature": ["Poetry", "Prose", "Drama", "Unseen Texts", "Comparative Analysis"],
+  "Law": ["Contract Law", "Tort Law", "Criminal Law", "Legal Reasoning", "Sources of Law"],
+  "Psychology": ["Research Methods", "Cognitive Psychology", "Social Psychology", "Biological Psychology", "Abnormal Psychology"],
+  "Sociology": ["Socialisation", "Stratification", "Family", "Education", "Research Methods"],
+  "Islamiyat": ["Quran", "Hadith", "Islamic Beliefs", "Islamic Practices", "Islamic History"],
+  "Pakistan Studies": ["Geography", "History", "Government", "Economy", "Culture"],
+  "General Paper": ["Current Affairs", "Essay Writing", "Comprehension", "Critical Argument"],
+};
