@@ -158,6 +158,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </div>
+        <div className="shrink-0 border-t border-border/40 px-6 py-2 bg-background flex items-center justify-center">
+          <p className="text-[11px] text-muted-foreground/50 text-center">
+            Wildo is an AI and can make mistakes — always verify important answers with your teacher or official Cambridge resources.
+          </p>
+        </div>
       </main>
     </div>
   );
