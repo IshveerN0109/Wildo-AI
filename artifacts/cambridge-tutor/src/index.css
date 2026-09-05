@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -52,8 +52,8 @@
   --color-sidebar-accent-border: var(--sidebar-accent-border);
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
-  --font-sans: 'Inter', sans-serif;
-  --font-serif: 'Lora', serif;
+  --font-sans: 'DM Sans', sans-serif;
+  --font-serif: 'Libre Baskerville', serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -63,44 +63,44 @@
 }
 
 :root {
-  --background: 210 20% 98%; /* Slate 50 */
-  --foreground: 222 47% 11%; /* Slate 900 */
+  --background: 42 36% 97%;
+  --foreground: 216 33% 16%;
 
-  --border: 214 32% 91%; /* Slate 200 */
-  --input: 214 32% 91%;
-  --ring: 215 50% 23%; /* Oxford Blue */
+  --border: 39 21% 86%;
+  --input: 39 21% 86%;
+  --ring: 215 48% 27%;
 
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --card-border: 214 32% 91%;
+  --card: 40 33% 99%;
+  --card-foreground: 216 33% 16%;
+  --card-border: 39 21% 86%;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --popover-border: 214 32% 91%;
+  --popover: 40 33% 99%;
+  --popover-foreground: 216 33% 16%;
+  --popover-border: 39 21% 86%;
 
-  --primary: 215 50% 23%; /* Oxford Blue */
-  --primary-foreground: 210 40% 98%;
+  --primary: 215 48% 27%;
+  --primary-foreground: 42 36% 97%;
 
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 39 28% 92%;
+  --secondary-foreground: 216 33% 16%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted: 39 28% 92%;
+  --muted-foreground: 216 15% 45%;
 
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --accent: 13 63% 92%;
+  --accent-foreground: 216 33% 16%;
 
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 5 63% 45%;
+  --destructive-foreground: 42 36% 97%;
 
-  --sidebar: 215 50% 23%; /* Oxford Blue sidebar */
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 215 40% 20%;
-  --sidebar-primary: 210 40% 98%;
-  --sidebar-primary-foreground: 215 50% 23%;
-  --sidebar-accent: 215 40% 28%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-ring: 210 40% 98%;
+  --sidebar: 215 48% 27%;
+  --sidebar-foreground: 42 36% 97%;
+  --sidebar-border: 215 35% 22%;
+  --sidebar-primary: 42 36% 97%;
+  --sidebar-primary-foreground: 215 48% 27%;
+  --sidebar-accent: 215 35% 33%;
+  --sidebar-accent-foreground: 42 36% 97%;
+  --sidebar-ring: 42 36% 97%;
 
   --radius: 0.5rem;
 }

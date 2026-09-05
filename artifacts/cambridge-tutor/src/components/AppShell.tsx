@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User, Zap, Flame } from "lucide-react";
+import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User, Zap, Flame, Mic } from "lucide-react";
 import { useGetStreak } from "@workspace/api-client-react";
 import { useStudent } from "@/contexts/StudentContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { href: "/notes", label: "Notes", icon: BookOpen },
     { href: "/flashcards", label: "Flashcards", icon: Library },
     { href: "/revision", label: "Revision Mode", icon: GraduationCap },
+    { href: "/oral-practice", label: "Oral English practice", icon: Mic },
   ];
 
   const displayName = user

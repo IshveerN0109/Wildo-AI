@@ -24,6 +24,8 @@ tags:
     description: Study streak tracking
   - name: quiz
     description: Timed quiz sessions
+  - name: oral-practice
+    description: Cambridge-style Oral English practice
 paths:
   /auth/user:
     get:
@@ -554,6 +556,31 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/QuizSession"
+
+  /oral-practice/evaluate:
+    post:
+      operationId: evaluateOralPractice
+      tags: [oral-practice]
+      summary: Transcribe and evaluate a student's spoken Cambridge-style answer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OralPracticeEvaluateInput"
+      responses:
+        "200":
+          description: Transcript, formative Cambridge-style assessment, and spoken examiner response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OralPracticeEvaluation"
+        "400":
+          description: Invalid request
+        "422":
+          description: No speech detected
+        "500":
+          description: Audio evaluation failed
 
 components:
   parameters:
@@ -1117,3 +1144,109 @@ components:
         - totalQuestions
         - timePerQuestion
         - createdAt
+
+    OralPracticeEvaluateInput:
+      type: object
+      properties:
+        subject:
+          type: string
+        level:
+          type: string
+        question:
+          type: string
+        audioBase64:
+          type: string
+        audioFormat:
+          type: string
+          enum: [webm, mp4, wav, mp3]
+        voice:
+          type: string
+          enum: [alloy, echo, fable, onyx, nova, shimmer]
+      required:
+        - subject
+        - level
+        - question
+        - audioBase64
+
+    OralPracticeScore:
+      type: object
+      properties:
+        overall:
+          type: integer
+        contentAndCommunication:
+          type: integer
+        vocabularyAndGrammar:
+          type: integer
+        fluencyAndInteraction:
+          type: integer
+        pronunciation:
+          type: integer
+        maxPerCriterion:
+          type: integer
+        examinerComment:
+          type: string
+        strengths:
+          type: array
+          items:
+            type: string
+        improvements:
+          type: array
+          items:
+            type: string
+      required:
+        - overall
+        - contentAndCommunication
+        - vocabularyAndGrammar
+        - fluencyAndInteraction
+        - pronunciation
+        - maxPerCriterion
+        - examinerComment
+        - strengths
+        - improvements
+
+    OralPracticeVerification:
+      type: object
+      properties:
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        syllabusReference:
+          type: string
+        markSchemeNote:
+          type: string
+      required:
+        - confidence
+        - syllabusReference
+        - markSchemeNote
+
+    OralPracticeEvaluation:
+      type: object
+      properties:
+        transcript:
+          type: string
+        examinerReply:
+          type: string
+        nextQuestion:
+          type: string
+        audioResponseBase64:
+          type: string
+        audioMimeType:
+          type: string
+        voice:
+          type: string
+        inputFormat:
+          type: string
+        score:
+          $ref: "#/components/schemas/OralPracticeScore"
+        verification:
+          $ref: "#/components/schemas/OralPracticeVerification"
+      required:
+        - transcript
+        - examinerReply
+        - nextQuestion
+        - audioResponseBase64
+        - audioMimeType
+        - voice
+        - inputFormat
+        - score
+        - verification

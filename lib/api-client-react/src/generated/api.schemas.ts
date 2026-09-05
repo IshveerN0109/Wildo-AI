@@ -262,6 +262,76 @@ export interface QuizSession {
   createdAt: string;
 }
 
+export type OralPracticeEvaluateInputAudioFormat = typeof OralPracticeEvaluateInputAudioFormat[keyof typeof OralPracticeEvaluateInputAudioFormat];
+
+
+export const OralPracticeEvaluateInputAudioFormat = {
+  webm: 'webm',
+  mp4: 'mp4',
+  wav: 'wav',
+  mp3: 'mp3',
+} as const;
+
+export type OralPracticeEvaluateInputVoice = typeof OralPracticeEvaluateInputVoice[keyof typeof OralPracticeEvaluateInputVoice];
+
+
+export const OralPracticeEvaluateInputVoice = {
+  alloy: 'alloy',
+  echo: 'echo',
+  fable: 'fable',
+  onyx: 'onyx',
+  nova: 'nova',
+  shimmer: 'shimmer',
+} as const;
+
+export interface OralPracticeEvaluateInput {
+  subject: string;
+  level: string;
+  question: string;
+  audioBase64: string;
+  audioFormat?: OralPracticeEvaluateInputAudioFormat;
+  voice?: OralPracticeEvaluateInputVoice;
+}
+
+export interface OralPracticeScore {
+  overall: number;
+  contentAndCommunication: number;
+  vocabularyAndGrammar: number;
+  fluencyAndInteraction: number;
+  pronunciation: number;
+  maxPerCriterion: number;
+  examinerComment: string;
+  strengths: string[];
+  improvements: string[];
+}
+
+export type OralPracticeVerificationConfidence = typeof OralPracticeVerificationConfidence[keyof typeof OralPracticeVerificationConfidence];
+
+
+export const OralPracticeVerificationConfidence = {
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export interface OralPracticeVerification {
+  confidence: OralPracticeVerificationConfidence;
+  syllabusReference: string;
+  markSchemeNote: string;
+}
+
+export interface OralPracticeEvaluation {
+  transcript: string;
+  examinerReply: string;
+  nextQuestion: string;
+  audioResponseBase64: string;
+  audioMimeType: string;
+  voice: string;
+  inputFormat: string;
+  score: OralPracticeScore;
+  verification: OralPracticeVerification;
+}
+
 /**
  * Opaque session token — `Bearer <sid>`.
  */

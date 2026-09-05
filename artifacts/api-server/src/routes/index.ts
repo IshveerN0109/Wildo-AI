@@ -7,6 +7,7 @@ import flashcardsRouter from "./flashcards";
 import statsRouter from "./stats";
 import streaksRouter from "./streaks";
 import quizRouter from "./quiz";
+import oralPracticeRouter from "./oral-practice";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(flashcardsRouter);
 router.use(statsRouter);
 router.use(streaksRouter);
 router.use(quizRouter);
+router.use(oralPracticeRouter);
 
 export default router;

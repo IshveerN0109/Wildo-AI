@@ -44,6 +44,8 @@ import type {
   OpenaiError,
   OpenaiMessage,
   OpenaiMessageInput,
+  OralPracticeEvaluateInput,
+  OralPracticeEvaluation,
   QuizCompleteInput,
   QuizGenerateInput,
   QuizSession,
@@ -2383,4 +2385,74 @@ export function useGetQuizHistory<TData = Awaited<ReturnType<typeof getQuizHisto
 
 
 
+
+export const getEvaluateOralPracticeUrl = () => {
+
+
+
+
+  return `/api/oral-practice/evaluate`
+}
+
+/**
+ * @summary Transcribe and evaluate a student's spoken Cambridge-style answer
+ */
+export const evaluateOralPractice = async (oralPracticeEvaluateInput: OralPracticeEvaluateInput, options?: RequestInit): Promise<OralPracticeEvaluation> => {
+
+  return customFetch<OralPracticeEvaluation>(getEvaluateOralPracticeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(oralPracticeEvaluateInput)
+  }
+);}
+
+
+
+
+export const getEvaluateOralPracticeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof evaluateOralPractice>>, TError,{data: BodyType<OralPracticeEvaluateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof evaluateOralPractice>>, TError,{data: BodyType<OralPracticeEvaluateInput>}, TContext> => {
+
+const mutationKey = ['evaluateOralPractice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof evaluateOralPractice>>, {data: BodyType<OralPracticeEvaluateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  evaluateOralPractice(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EvaluateOralPracticeMutationResult = NonNullable<Awaited<ReturnType<typeof evaluateOralPractice>>>
+    export type EvaluateOralPracticeMutationBody = BodyType<OralPracticeEvaluateInput>
+    export type EvaluateOralPracticeMutationError = ErrorType<void>
+
+    /**
+ * @summary Transcribe and evaluate a student's spoken Cambridge-style answer
+ */
+export const useEvaluateOralPractice = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof evaluateOralPractice>>, TError,{data: BodyType<OralPracticeEvaluateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof evaluateOralPractice>>,
+        TError,
+        {data: BodyType<OralPracticeEvaluateInput>},
+        TContext
+      > => {
+      return useMutation(getEvaluateOralPracticeMutationOptions(options));
+    }
 

@@ -526,3 +526,42 @@ export const GetQuizHistoryResponseItem = zod.object({
 export const GetQuizHistoryResponse = zod.array(GetQuizHistoryResponseItem)
 
 
+/**
+ * @summary Transcribe and evaluate a student's spoken Cambridge-style answer
+ */
+export const EvaluateOralPracticeBody = zod.object({
+  "subject": zod.string(),
+  "level": zod.string(),
+  "question": zod.string(),
+  "audioBase64": zod.string(),
+  "audioFormat": zod.enum(['webm', 'mp4', 'wav', 'mp3']).optional(),
+  "voice": zod.enum(['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']).optional()
+})
+
+export const EvaluateOralPracticeResponse = zod.object({
+  "transcript": zod.string(),
+  "examinerReply": zod.string(),
+  "nextQuestion": zod.string(),
+  "audioResponseBase64": zod.string(),
+  "audioMimeType": zod.string(),
+  "voice": zod.string(),
+  "inputFormat": zod.string(),
+  "score": zod.object({
+  "overall": zod.number(),
+  "contentAndCommunication": zod.number(),
+  "vocabularyAndGrammar": zod.number(),
+  "fluencyAndInteraction": zod.number(),
+  "pronunciation": zod.number(),
+  "maxPerCriterion": zod.number(),
+  "examinerComment": zod.string(),
+  "strengths": zod.array(zod.string()),
+  "improvements": zod.array(zod.string())
+}),
+  "verification": zod.object({
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "syllabusReference": zod.string(),
+  "markSchemeNote": zod.string()
+})
+})
+
+
