@@ -5,17 +5,122 @@ import {
   textToSpeech,
 } from "@workspace/integrations-openai-ai-server/audio";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { EvaluateOralPracticeBody, EvaluateOralPracticeResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-const CAMBRIDGE_ORAL_SYSTEM_PROMPT = `You are Wildo, a careful Cambridge International English Language oral examiner for practice.
+type OralCriterionConfig = {
+  id: string;
+  label: string;
+  assessmentObjective: string;
+  maxMarks: number;
+  guidance: string;
+};
+
+type SyllabusProfile = {
+  code: string;
+  title: string;
+  component: string;
+  syllabusReference: string;
+  markSchemeReference: string;
+  assessmentObjectives: string[];
+  criteria: OralCriterionConfig[];
+};
+
+const SYLLABUS_PROFILES: Record<string, SyllabusProfile> = {
+  "0500": {
+    code: "0500",
+    title: "Cambridge IGCSE First Language English",
+    component: "Component 4 Speaking and Listening Test",
+    syllabusReference:
+      "Cambridge IGCSE First Language English 0500 syllabus for 2024–2026, Component 4",
+    markSchemeReference:
+      "Cambridge IGCSE First Language English 0500 syllabus for 2024–2026, Component 4 level descriptions",
+    assessmentObjectives: [
+      "SL1 articulate experience and express what is thought, felt and imagined",
+      "SL2 present facts, ideas and opinions in a cohesive order which sustains the audience’s interest",
+      "SL3 communicate clearly and purposefully using fluent language",
+      "SL4 use register appropriate to context",
+      "SL5 listen and respond appropriately in conversation",
+    ],
+    criteria: [
+      {
+        id: "individualTalkSpeaking",
+        label: "Individual Talk — speaking",
+        assessmentObjective: "SL1–SL4",
+        maxMarks: 20,
+        guidance: "Content, organisation, fluent delivery, language devices, and register in the individual talk.",
+      },
+      {
+        id: "conversationSpeaking",
+        label: "Conversation — speaking",
+        assessmentObjective: "SL1–SL4",
+        maxMarks: 10,
+        guidance: "Relevant, clear, fluent contributions and appropriate register in conversation.",
+      },
+      {
+        id: "conversationListening",
+        label: "Conversation — listening",
+        assessmentObjective: "SL5",
+        maxMarks: 10,
+        guidance: "Listening and responding appropriately to the examiner in conversation.",
+      },
+    ],
+  },
+  "0510": {
+    code: "0510",
+    title: "Cambridge IGCSE English as a Second Language",
+    component: "Paper 3 Speaking Test",
+    syllabusReference:
+      "Cambridge IGCSE English as a Second Language 0510 syllabus for 2024–2026, Paper 3",
+    markSchemeReference:
+      "Cambridge IGCSE English as a Second Language 0510 syllabus for 2024–2026, Speaking assessment criteria",
+    assessmentObjectives: [
+      "AO4 Speaking / S1 communicate a range of ideas, facts and opinions",
+      "AO4 Speaking / S2 demonstrate control of a range of vocabulary and grammatical structures",
+      "AO4 Speaking / S3 develop responses and maintain communication",
+      "AO4 Speaking / S4 demonstrate control of pronunciation and intonation",
+    ],
+    criteria: [
+      {
+        id: "grammar",
+        label: "Grammar",
+        assessmentObjective: "S2",
+        maxMarks: 10,
+        guidance: "Control and range of simple and complex grammatical structures.",
+      },
+      {
+        id: "vocabulary",
+        label: "Vocabulary",
+        assessmentObjective: "S1–S2",
+        maxMarks: 10,
+        guidance: "Range and precision of vocabulary used to communicate ideas, facts and opinions.",
+      },
+      {
+        id: "development",
+        label: "Development",
+        assessmentObjective: "S1–S3",
+        maxMarks: 10,
+        guidance: "Relevance, development of responses, and ability to maintain communication.",
+      },
+      {
+        id: "pronunciation",
+        label: "Pronunciation",
+        assessmentObjective: "S4",
+        maxMarks: 10,
+        guidance: "Control and intelligibility of pronunciation and intonation; use transcript evidence conservatively.",
+      },
+    ],
+  },
+};
+
+const BASE_ORAL_SYSTEM_PROMPT = `You are Wildo, a careful Cambridge International English Language oral examiner for practice.
 
 Your job is to evaluate one student's spoken response to a Cambridge-style oral English prompt.
 
 Important accuracy rules:
-- Use only Cambridge-style assessment principles: content and communication, vocabulary and grammar, pronunciation, and fluency/interaction.
-- Do not invent an official syllabus code, paper number, mark allocation, grade boundary, or quotation from a mark scheme.
-- If the exact Cambridge syllabus code is not supplied, say that the reference is a general Cambridge-style practice reference, not an official mark.
+- Use only the configured syllabus profile supplied below. Do not substitute a generic Cambridge-style rubric.
+- Do not invent an official syllabus code, paper number, mark allocation, grade boundary, assessment objective, or quotation from a mark scheme.
 - This is formative practice feedback, not an official Cambridge result.
 - Be fair to international learners. Do not penalise an accent by itself; assess intelligibility, pronunciation features, fluency, range, accuracy, and ability to communicate meaning.
 - Do not reward memorised filler or penalise a natural pause.
@@ -27,28 +132,16 @@ Return ONLY valid JSON with this shape:
   "examinerReply": "A short spoken-style examiner response to the student, 2-4 sentences.",
   "nextQuestion": "One natural Cambridge-style follow-up question.",
   "score": {
-    "overall": 0,
-    "contentAndCommunication": 0,
-    "vocabularyAndGrammar": 0,
-    "fluencyAndInteraction": 0,
-    "pronunciation": 0,
-    "maxPerCriterion": 5,
+    "criteria": [
+      { "id": "configured criterion id", "marks": 0, "examinerComment": "Evidence-based comment." }
+    ],
     "examinerComment": "A concise overall comment.",
     "strengths": ["specific strength"],
     "improvements": ["specific improvement"]
-  },
-  "verification": {
-    "confidence": "high|medium|low",
-    "syllabusReference": "General Cambridge-style oral English practice",
-    "markSchemeNote": "Explain briefly that this is formative practice and not an official mark."
   }
 }
 
-Scoring:
-- Score each criterion from 0 to 5 using evidence in the response.
-- overall is the sum of the four criterion scores, from 0 to 20.
-- pronunciation must be conservative when only a transcript is available; do not pretend to hear sounds that are not represented.
-- A short answer is not automatically a bad answer, but explain when it limits evidence.`;
+The server owns the syllabus citation, criteria, mark allocations, and verification status. Never add a syllabus reference or mark-scheme claim to the JSON.`;
 
 function asString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -61,17 +154,114 @@ function asVoice(value: unknown): "alloy" | "echo" | "fable" | "onyx" | "nova" |
     : "alloy";
 }
 
-router.post("/oral-practice/evaluate", async (req, res): Promise<void> => {
-  const subject = asString(req.body?.subject);
-  const level = asString(req.body?.level);
-  const question = asString(req.body?.question);
-  const audioBase64 = asString(req.body?.audioBase64);
-  const requestedFormat = asString(req.body?.audioFormat) || "webm";
-  const voice = asVoice(req.body?.voice);
+function asSyllabusCode(value: unknown): string {
+  const code = asString(value);
+  return /^\d{4}$/.test(code) ? code : "";
+}
 
-  if (!subject || !level || !question || !audioBase64) {
+function buildSyllabusPrompt(profile: SyllabusProfile | undefined): string {
+  if (!profile) {
+    return `${BASE_ORAL_SYSTEM_PROMPT}
+
+Syllabus profile:
+- The student supplied a four-digit Cambridge syllabus code, but no approved oral assessment profile is configured for it.
+- Do not score this response. Return an empty score.criteria array, null-style score values are not allowed in your JSON, and explain in examinerComment that no mark scheme is available.
+- Do not infer criteria, objectives, marks, or a source from the code.`;
+  }
+
+  const criteria = profile.criteria
+    .map(
+      (criterion) =>
+        `- ${criterion.id}: ${criterion.label}; objective ${criterion.assessmentObjective}; maximum ${criterion.maxMarks} marks; ${criterion.guidance}`,
+    )
+    .join("\n");
+  return `${BASE_ORAL_SYSTEM_PROMPT}
+
+Configured syllabus profile:
+- Code: ${profile.code}
+- Title: ${profile.title}
+- Component: ${profile.component}
+- Assessment objectives: ${profile.assessmentObjectives.join("; ")}
+- Marked criteria:
+${criteria}
+
+Scoring:
+- Return exactly one score.criteria entry for each configured criterion, using its exact id.
+- Award an integer from 0 through that criterion's maximum marks, using only evidence in the transcript.
+- overall is the sum of the returned criterion marks.
+- pronunciation must be conservative when only a transcript is available; do not pretend to hear sounds that are not represented.
+- A short answer is not automatically a bad answer, but explain when it limits evidence.`;
+}
+
+function unscoredResult(syllabusCode: string) {
+  return {
+    overall: null,
+    maxTotalMarks: null,
+    criteria: [],
+    examinerComment: `No approved oral mark scheme is configured for syllabus ${syllabusCode}. This attempt is not scored.`,
+    strengths: [],
+    improvements: ["Confirm the syllabus code and use an approved oral assessment profile before relying on marks."],
+  };
+}
+
+function normalizeScore(value: unknown, profile: SyllabusProfile | undefined, syllabusCode: string) {
+  if (!profile) return unscoredResult(syllabusCode);
+  const rawScore = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const rawCriteria = Array.isArray(rawScore.criteria) ? rawScore.criteria : [];
+  const criteria = profile.criteria.map((criterion) => {
+    const result = rawCriteria.find(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        (item as Record<string, unknown>).id === criterion.id,
+    ) as Record<string, unknown> | undefined;
+    const marks =
+      typeof result?.marks === "number" && Number.isFinite(result.marks)
+        ? Math.max(0, Math.min(criterion.maxMarks, Math.round(result.marks)))
+        : 0;
+    return {
+      id: criterion.id,
+      label: criterion.label,
+      assessmentObjective: criterion.assessmentObjective,
+      marks,
+      maxMarks: criterion.maxMarks,
+      examinerComment:
+        asString(result?.examinerComment) || "No specific evidence-based comment was returned.",
+    };
+  });
+  return {
+    overall: criteria.reduce((total, criterion) => total + criterion.marks, 0),
+    maxTotalMarks: profile.criteria.reduce((total, criterion) => total + criterion.maxMarks, 0),
+    criteria,
+    examinerComment: asString(rawScore.examinerComment) || "Evidence-based formative feedback.",
+    strengths: Array.isArray(rawScore.strengths)
+      ? rawScore.strengths.filter((item): item is string => typeof item === "string").slice(0, 5)
+      : [],
+    improvements: Array.isArray(rawScore.improvements)
+      ? rawScore.improvements.filter((item): item is string => typeof item === "string").slice(0, 5)
+      : [],
+  };
+}
+
+router.post("/oral-practice/evaluate", async (req, res): Promise<void> => {
+  const parsedBody = EvaluateOralPracticeBody.safeParse(req.body);
+  if (!parsedBody.success) {
+    res.status(400).json({ error: parsedBody.error.message });
+    return;
+  }
+
+  const subject = asString(parsedBody.data.subject);
+  const level = asString(parsedBody.data.level);
+  const question = asString(parsedBody.data.question);
+  const syllabusCode = asSyllabusCode(parsedBody.data.syllabusCode);
+  const audioBase64 = asString(parsedBody.data.audioBase64);
+  const requestedFormat = parsedBody.data.audioFormat ?? "webm";
+  const voice = asVoice(parsedBody.data.voice);
+  const syllabusProfile = SYLLABUS_PROFILES[syllabusCode];
+
+  if (!subject || !level || !question || !syllabusCode || !audioBase64) {
     res.status(400).json({
-      error: "subject, level, question, and audioBase64 are required",
+      error: "subject, level, syllabusCode, question, and audioBase64 are required; syllabusCode must be a four-digit code",
     });
     return;
   }
@@ -96,11 +286,14 @@ router.post("/oral-practice/evaluate", async (req, res): Promise<void> => {
       temperature: 0.2,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: CAMBRIDGE_ORAL_SYSTEM_PROMPT },
+        { role: "system", content: buildSyllabusPrompt(syllabusProfile) },
         {
           role: "user",
-          content: `Level: ${level}
+          content: `${buildSyllabusPrompt(syllabusProfile)}
+
+Level: ${level}
 Subject: ${subject}
+Confirmed Cambridge syllabus code: ${syllabusCode}
 Cambridge-style oral question: ${question}
 Student transcript:
 ${transcript}`,
@@ -113,14 +306,13 @@ ${transcript}`,
       examinerReply?: string;
       nextQuestion?: string;
       score?: Record<string, unknown>;
-      verification?: Record<string, unknown>;
     };
 
     const examinerReply = asString(evaluation.examinerReply) || "Thank you. Let us continue.";
     const nextQuestion = asString(evaluation.nextQuestion) || question;
     const audioResponse = await textToSpeech(examinerReply, voice, "mp3");
 
-    res.json({
+    const responsePayload = {
       transcript,
       examinerReply,
       nextQuestion,
@@ -128,23 +320,21 @@ ${transcript}`,
       audioMimeType: "audio/mpeg",
       voice,
       inputFormat: requestedFormat,
-      score: evaluation.score ?? {
-        overall: 0,
-        contentAndCommunication: 0,
-        vocabularyAndGrammar: 0,
-        fluencyAndInteraction: 0,
-        pronunciation: 0,
-        maxPerCriterion: 5,
-        examinerComment: "The response could not be scored yet.",
-        strengths: [],
-        improvements: ["Please try another recording."],
+      score: normalizeScore(evaluation.score, syllabusProfile, syllabusCode),
+      verification: {
+        confidence: syllabusProfile ? "medium" : "low",
+        syllabusCode,
+        syllabusReference: syllabusProfile?.syllabusReference ?? `Cambridge syllabus ${syllabusCode} (code confirmed; oral profile unavailable)`,
+        component: syllabusProfile?.component ?? null,
+        assessmentObjectives: syllabusProfile?.assessmentObjectives ?? [],
+        markSchemeReference: syllabusProfile?.markSchemeReference ?? null,
+        markSchemeStatus: syllabusProfile ? "configured" : "unavailable",
+        markSchemeNote: syllabusProfile
+          ? "Formative practice only; marks follow the configured syllabus profile and are not an official Cambridge result."
+          : `No approved oral assessment profile is configured for syllabus ${syllabusCode}. Wildo has not invented a mark-scheme reference or score.`,
       },
-      verification: evaluation.verification ?? {
-        confidence: "low",
-        syllabusReference: "General Cambridge-style oral English practice",
-        markSchemeNote: "Formative practice only; not an official Cambridge mark.",
-      },
-    });
+    };
+    res.json(EvaluateOralPracticeResponse.parse(responsePayload));
   } catch (error) {
     req.log.error({ err: error }, "Oral English evaluation failed");
     res.status(500).json({

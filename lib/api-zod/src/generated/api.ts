@@ -529,9 +529,13 @@ export const GetQuizHistoryResponse = zod.array(GetQuizHistoryResponseItem)
 /**
  * @summary Transcribe and evaluate a student's spoken Cambridge-style answer
  */
+export const evaluateOralPracticeBodySyllabusCodeRegExp = new RegExp('^[0-9]{4}$');
+
+
 export const EvaluateOralPracticeBody = zod.object({
   "subject": zod.string(),
   "level": zod.string(),
+  "syllabusCode": zod.string().regex(evaluateOralPracticeBodySyllabusCodeRegExp).describe('Exact four-digit Cambridge syllabus code confirmed by the student.'),
   "question": zod.string(),
   "audioBase64": zod.string(),
   "audioFormat": zod.enum(['webm', 'mp4', 'wav', 'mp3']).optional(),
@@ -547,19 +551,28 @@ export const EvaluateOralPracticeResponse = zod.object({
   "voice": zod.string(),
   "inputFormat": zod.string(),
   "score": zod.object({
-  "overall": zod.number(),
-  "contentAndCommunication": zod.number(),
-  "vocabularyAndGrammar": zod.number(),
-  "fluencyAndInteraction": zod.number(),
-  "pronunciation": zod.number(),
-  "maxPerCriterion": zod.number(),
+  "overall": zod.number().nullable(),
+  "maxTotalMarks": zod.number().nullable(),
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "assessmentObjective": zod.string(),
+  "marks": zod.number(),
+  "maxMarks": zod.number(),
+  "examinerComment": zod.string()
+})),
   "examinerComment": zod.string(),
   "strengths": zod.array(zod.string()),
   "improvements": zod.array(zod.string())
 }),
   "verification": zod.object({
   "confidence": zod.enum(['high', 'medium', 'low']),
+  "syllabusCode": zod.string(),
   "syllabusReference": zod.string(),
+  "component": zod.string().nullable(),
+  "assessmentObjectives": zod.array(zod.string()),
+  "markSchemeReference": zod.string().nullable(),
+  "markSchemeStatus": zod.enum(['configured', 'unavailable']),
   "markSchemeNote": zod.string()
 })
 })

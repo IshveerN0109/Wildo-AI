@@ -5,14 +5,14 @@
  * Cambridge AI Tutor API
  * OpenAPI spec version: 0.1.0
  */
+import type { OralPracticeCriterion } from './oralPracticeCriterion';
 
 export interface OralPracticeScore {
-  overall: number;
-  contentAndCommunication: number;
-  vocabularyAndGrammar: number;
-  fluencyAndInteraction: number;
-  pronunciation: number;
-  maxPerCriterion: number;
+  /** @nullable */
+  overall: number | null;
+  /** @nullable */
+  maxTotalMarks: number | null;
+  criteria: OralPracticeCriterion[];
   examinerComment: string;
   strengths: string[];
   improvements: string[];

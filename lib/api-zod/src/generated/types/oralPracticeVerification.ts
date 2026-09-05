@@ -6,9 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { OralPracticeVerificationConfidence } from './oralPracticeVerificationConfidence';
+import type { OralPracticeVerificationMarkSchemeStatus } from './oralPracticeVerificationMarkSchemeStatus';
 
 export interface OralPracticeVerification {
   confidence: OralPracticeVerificationConfidence;
+  syllabusCode: string;
   syllabusReference: string;
+  /** @nullable */
+  component: string | null;
+  assessmentObjectives: string[];
+  /** @nullable */
+  markSchemeReference: string | null;
+  markSchemeStatus: OralPracticeVerificationMarkSchemeStatus;
   markSchemeNote: string;
 }

@@ -287,19 +287,32 @@ export const OralPracticeEvaluateInputVoice = {
 export interface OralPracticeEvaluateInput {
   subject: string;
   level: string;
+  /**
+     * Exact four-digit Cambridge syllabus code confirmed by the student.
+     * @pattern ^[0-9]{4}$
+     */
+  syllabusCode: string;
   question: string;
   audioBase64: string;
   audioFormat?: OralPracticeEvaluateInputAudioFormat;
   voice?: OralPracticeEvaluateInputVoice;
 }
 
+export interface OralPracticeCriterion {
+  id: string;
+  label: string;
+  assessmentObjective: string;
+  marks: number;
+  maxMarks: number;
+  examinerComment: string;
+}
+
 export interface OralPracticeScore {
-  overall: number;
-  contentAndCommunication: number;
-  vocabularyAndGrammar: number;
-  fluencyAndInteraction: number;
-  pronunciation: number;
-  maxPerCriterion: number;
+  /** @nullable */
+  overall: number | null;
+  /** @nullable */
+  maxTotalMarks: number | null;
+  criteria: OralPracticeCriterion[];
   examinerComment: string;
   strengths: string[];
   improvements: string[];
@@ -314,9 +327,24 @@ export const OralPracticeVerificationConfidence = {
   low: 'low',
 } as const;
 
+export type OralPracticeVerificationMarkSchemeStatus = typeof OralPracticeVerificationMarkSchemeStatus[keyof typeof OralPracticeVerificationMarkSchemeStatus];
+
+
+export const OralPracticeVerificationMarkSchemeStatus = {
+  configured: 'configured',
+  unavailable: 'unavailable',
+} as const;
+
 export interface OralPracticeVerification {
   confidence: OralPracticeVerificationConfidence;
+  syllabusCode: string;
   syllabusReference: string;
+  /** @nullable */
+  component: string | null;
+  assessmentObjectives: string[];
+  /** @nullable */
+  markSchemeReference: string | null;
+  markSchemeStatus: OralPracticeVerificationMarkSchemeStatus;
   markSchemeNote: string;
 }
 

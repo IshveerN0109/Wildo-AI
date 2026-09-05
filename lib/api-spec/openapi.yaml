@@ -1152,6 +1152,10 @@ components:
           type: string
         level:
           type: string
+        syllabusCode:
+          type: string
+          pattern: "^[0-9]{4}$"
+          description: Exact four-digit Cambridge syllabus code confirmed by the student.
         question:
           type: string
         audioBase64:
@@ -1165,24 +1169,38 @@ components:
       required:
         - subject
         - level
+        - syllabusCode
         - question
         - audioBase64
+
+    OralPracticeCriterion:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        assessmentObjective:
+          type: string
+        marks:
+          type: integer
+        maxMarks:
+          type: integer
+        examinerComment:
+          type: string
+      required: [id, label, assessmentObjective, marks, maxMarks, examinerComment]
 
     OralPracticeScore:
       type: object
       properties:
         overall:
-          type: integer
-        contentAndCommunication:
-          type: integer
-        vocabularyAndGrammar:
-          type: integer
-        fluencyAndInteraction:
-          type: integer
-        pronunciation:
-          type: integer
-        maxPerCriterion:
-          type: integer
+          type: ["integer", "null"]
+        maxTotalMarks:
+          type: ["integer", "null"]
+        criteria:
+          type: array
+          items:
+            $ref: "#/components/schemas/OralPracticeCriterion"
         examinerComment:
           type: string
         strengths:
@@ -1195,11 +1213,8 @@ components:
             type: string
       required:
         - overall
-        - contentAndCommunication
-        - vocabularyAndGrammar
-        - fluencyAndInteraction
-        - pronunciation
-        - maxPerCriterion
+        - maxTotalMarks
+        - criteria
         - examinerComment
         - strengths
         - improvements
@@ -1210,13 +1225,31 @@ components:
         confidence:
           type: string
           enum: [high, medium, low]
+        syllabusCode:
+          type: string
         syllabusReference:
           type: string
+        component:
+          type: ["string", "null"]
+        assessmentObjectives:
+          type: array
+          items:
+            type: string
+        markSchemeReference:
+          type: ["string", "null"]
+        markSchemeStatus:
+          type: string
+          enum: [configured, unavailable]
         markSchemeNote:
           type: string
       required:
         - confidence
+        - syllabusCode
         - syllabusReference
+        - component
+        - assessmentObjectives
+        - markSchemeReference
+        - markSchemeStatus
         - markSchemeNote
 
     OralPracticeEvaluation:

@@ -11,6 +11,11 @@ import type { OralPracticeEvaluateInputVoice } from './oralPracticeEvaluateInput
 export interface OralPracticeEvaluateInput {
   subject: string;
   level: string;
+  /**
+     * Exact four-digit Cambridge syllabus code confirmed by the student.
+     * @pattern ^[0-9]{4}$
+     */
+  syllabusCode: string;
   question: string;
   audioBase64: string;
   audioFormat?: OralPracticeEvaluateInputAudioFormat;
