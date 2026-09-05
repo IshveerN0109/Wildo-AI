@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowLeft, Shield, BookOpen, AlertTriangle, Eye, MessageSquare, HelpCircle } from "lucide-react";
+import { WILDO_LOGO } from "@/lib/branding";
 
 export default function Terms() {
   return (
@@ -14,9 +15,9 @@ export default function Terms() {
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <img
-          src="/cambridge-tutor/wildo-logo.png"
+          src={WILDO_LOGO}
           alt="Wildo"
-          className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/30"
+          className="w-12 h-12 rounded-full object-contain bg-white ring-2 ring-primary/30"
         />
         <div>
           <h1 className="text-2xl font-bold font-serif">Terms &amp; Conditions</h1>
@@ -112,9 +113,9 @@ export default function Terms() {
         {/* Footer signature */}
         <div className="pt-6 border-t flex items-center gap-3 text-muted-foreground">
           <img
-            src="/cambridge-tutor/wildo-logo.png"
+            src={WILDO_LOGO}
             alt="Wildo"
-            className="w-8 h-8 rounded-full object-cover opacity-60"
+            className="w-8 h-8 rounded-full object-contain bg-white opacity-60"
           />
           <div>
             <p className="text-xs font-semibold text-foreground">Wildo — Cambridge AI Tutor</p>

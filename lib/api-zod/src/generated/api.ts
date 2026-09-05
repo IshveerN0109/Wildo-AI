@@ -436,3 +436,93 @@ export const GetRecentActivityResponseItem = zod.object({
 export const GetRecentActivityResponse = zod.array(GetRecentActivityResponseItem)
 
 
+/**
+ * @summary Get the current user's study streak
+ */
+export const GetStreakResponse = zod.object({
+  "currentStreak": zod.number(),
+  "longestStreak": zod.number(),
+  "lastStudiedDate": zod.string().nullable()
+})
+
+
+/**
+ * @summary Record a study activity and update the streak
+ */
+export const RecordStudyActivityResponse = zod.object({
+  "currentStreak": zod.number(),
+  "longestStreak": zod.number(),
+  "lastStudiedDate": zod.string().nullable()
+})
+
+
+/**
+ * @summary AI-generate a timed quiz
+ */
+export const GenerateQuizBody = zod.object({
+  "subject": zod.string(),
+  "level": zod.string(),
+  "topic": zod.string(),
+  "difficulty": zod.enum(['easy', 'medium', 'hard'])
+})
+
+export const GenerateQuizResponse = zod.object({
+  "subject": zod.string(),
+  "level": zod.string(),
+  "topic": zod.string(),
+  "difficulty": zod.string(),
+  "timePerQuestion": zod.number(),
+  "questions": zod.array(zod.object({
+  "question": zod.string(),
+  "options": zod.array(zod.string()),
+  "correctIndex": zod.number(),
+  "explanation": zod.string()
+}))
+})
+
+
+/**
+ * @summary Save a completed quiz result and update streak
+ */
+export const CompleteQuizBody = zod.object({
+  "subject": zod.string(),
+  "level": zod.string(),
+  "topic": zod.string(),
+  "difficulty": zod.string(),
+  "score": zod.number(),
+  "totalQuestions": zod.number(),
+  "timePerQuestion": zod.number()
+})
+
+export const CompleteQuizResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.string().nullish(),
+  "subject": zod.string(),
+  "level": zod.string(),
+  "topic": zod.string(),
+  "difficulty": zod.string(),
+  "score": zod.number(),
+  "totalQuestions": zod.number(),
+  "timePerQuestion": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get past quiz sessions
+ */
+export const GetQuizHistoryResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.string().nullish(),
+  "subject": zod.string(),
+  "level": zod.string(),
+  "topic": zod.string(),
+  "difficulty": zod.string(),
+  "score": zod.number(),
+  "totalQuestions": zod.number(),
+  "timePerQuestion": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+export const GetQuizHistoryResponse = zod.array(GetQuizHistoryResponseItem)
+
+

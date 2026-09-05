@@ -199,6 +199,69 @@ export interface ActivityItem {
   createdAt: string;
 }
 
+export interface StudyStreak {
+  currentStreak: number;
+  longestStreak: number;
+  /** @nullable */
+  lastStudiedDate: string | null;
+}
+
+export type QuizGenerateInputDifficulty = typeof QuizGenerateInputDifficulty[keyof typeof QuizGenerateInputDifficulty];
+
+
+export const QuizGenerateInputDifficulty = {
+  easy: 'easy',
+  medium: 'medium',
+  hard: 'hard',
+} as const;
+
+export interface QuizGenerateInput {
+  subject: string;
+  level: string;
+  topic: string;
+  difficulty: QuizGenerateInputDifficulty;
+}
+
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+export interface GeneratedQuiz {
+  subject: string;
+  level: string;
+  topic: string;
+  difficulty: string;
+  timePerQuestion: number;
+  questions: QuizQuestion[];
+}
+
+export interface QuizCompleteInput {
+  subject: string;
+  level: string;
+  topic: string;
+  difficulty: string;
+  score: number;
+  totalQuestions: number;
+  timePerQuestion: number;
+}
+
+export interface QuizSession {
+  id: number;
+  /** @nullable */
+  userId?: string | null;
+  subject: string;
+  level: string;
+  topic: string;
+  difficulty: string;
+  score: number;
+  totalQuestions: number;
+  timePerQuestion: number;
+  createdAt: string;
+}
+
 /**
  * Opaque session token — `Bearer <sid>`.
  */

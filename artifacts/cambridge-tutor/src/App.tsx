@@ -15,6 +15,7 @@ import FlashcardDetail from "@/pages/flashcard-detail";
 import Revision from "@/pages/revision";
 import Onboarding from "@/pages/onboarding";
 import Terms from "@/pages/terms";
+import Quiz from "@/pages/quiz";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/flashcards" component={Flashcards} />
         <Route path="/flashcards/:id" component={FlashcardDetail} />
         <Route path="/revision" component={Revision} />
+        <Route path="/quiz" component={Quiz} />
         <Route path="/terms" component={Terms} />
         <Route component={NotFound} />
       </Switch>

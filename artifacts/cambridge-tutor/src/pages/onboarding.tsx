@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useStudent } from "@/contexts/StudentContext";
 import { type Level, O_LEVEL_SUBJECTS, A_LEVEL_SUBJECTS } from "@/lib/constants";
 import { GraduationCap, BookOpen, ChevronRight } from "lucide-react";
+import { WILDO_LOGO } from "@/lib/branding";
 
 const levels: { value: Level; label: string; badge: string; description: string; count: number; examples: string[] }[] = [
   {
@@ -31,14 +32,14 @@ export default function Onboarding() {
       <div className="w-full max-w-2xl space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-2">
-            <GraduationCap className="w-8 h-8 text-primary" />
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-white border border-border shadow-sm overflow-hidden mb-2">
+            <img src={WILDO_LOGO} alt="Wildo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-4xl font-bold font-serif text-foreground tracking-tight">
-            Welcome to Cambridge AI Tutor
+            Welcome to Wildo
           </h1>
           <p className="text-muted-foreground text-lg max-w-md mx-auto">
-            Your personal study companion for Cambridge International Examinations.
+            Your Cambridge AI study assistant.
             Let's start by setting up your profile.
           </p>
         </div>

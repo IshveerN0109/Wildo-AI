@@ -27,6 +27,7 @@ import type {
   FlashcardSet,
   FlashcardSetInput,
   FlashcardSetWithCards,
+  GeneratedQuiz,
   HandleBrowserLoginCallbackParams,
   HealthStatus,
   ListNotesParams,
@@ -43,6 +44,10 @@ import type {
   OpenaiError,
   OpenaiMessage,
   OpenaiMessageInput,
+  QuizCompleteInput,
+  QuizGenerateInput,
+  QuizSession,
+  StudyStreak,
   StudySummary
 } from './api.schemas';
 
@@ -2003,6 +2008,370 @@ export function useGetRecentActivity<TData = Awaited<ReturnType<typeof getRecent
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetRecentActivityQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetStreakUrl = () => {
+
+
+
+
+  return `/api/streak`
+}
+
+/**
+ * @summary Get the current user's study streak
+ */
+export const getStreak = async ( options?: RequestInit): Promise<StudyStreak> => {
+
+  return customFetch<StudyStreak>(getGetStreakUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStreakQueryKey = () => {
+    return [
+    `/api/streak`
+    ] as const;
+    }
+
+
+export const getGetStreakQueryOptions = <TData = Awaited<ReturnType<typeof getStreak>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStreak>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStreakQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStreak>>> = ({ signal }) => getStreak({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStreak>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStreakQueryResult = NonNullable<Awaited<ReturnType<typeof getStreak>>>
+export type GetStreakQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the current user's study streak
+ */
+
+export function useGetStreak<TData = Awaited<ReturnType<typeof getStreak>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStreak>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStreakQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRecordStudyActivityUrl = () => {
+
+
+
+
+  return `/api/streak/record`
+}
+
+/**
+ * @summary Record a study activity and update the streak
+ */
+export const recordStudyActivity = async ( options?: RequestInit): Promise<StudyStreak> => {
+
+  return customFetch<StudyStreak>(getRecordStudyActivityUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRecordStudyActivityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordStudyActivity>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordStudyActivity>>, TError,void, TContext> => {
+
+const mutationKey = ['recordStudyActivity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordStudyActivity>>, void> = () => {
+
+
+          return  recordStudyActivity(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordStudyActivityMutationResult = NonNullable<Awaited<ReturnType<typeof recordStudyActivity>>>
+
+    export type RecordStudyActivityMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Record a study activity and update the streak
+ */
+export const useRecordStudyActivity = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordStudyActivity>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordStudyActivity>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRecordStudyActivityMutationOptions(options));
+    }
+
+export const getGenerateQuizUrl = () => {
+
+
+
+
+  return `/api/quiz/generate`
+}
+
+/**
+ * @summary AI-generate a timed quiz
+ */
+export const generateQuiz = async (quizGenerateInput: QuizGenerateInput, options?: RequestInit): Promise<GeneratedQuiz> => {
+
+  return customFetch<GeneratedQuiz>(getGenerateQuizUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(quizGenerateInput)
+  }
+);}
+
+
+
+
+export const getGenerateQuizMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateQuiz>>, TError,{data: BodyType<QuizGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateQuiz>>, TError,{data: BodyType<QuizGenerateInput>}, TContext> => {
+
+const mutationKey = ['generateQuiz'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateQuiz>>, {data: BodyType<QuizGenerateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateQuiz(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateQuizMutationResult = NonNullable<Awaited<ReturnType<typeof generateQuiz>>>
+    export type GenerateQuizMutationBody = BodyType<QuizGenerateInput>
+    export type GenerateQuizMutationError = ErrorType<unknown>
+
+    /**
+ * @summary AI-generate a timed quiz
+ */
+export const useGenerateQuiz = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateQuiz>>, TError,{data: BodyType<QuizGenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateQuiz>>,
+        TError,
+        {data: BodyType<QuizGenerateInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateQuizMutationOptions(options));
+    }
+
+export const getCompleteQuizUrl = () => {
+
+
+
+
+  return `/api/quiz/complete`
+}
+
+/**
+ * @summary Save a completed quiz result and update streak
+ */
+export const completeQuiz = async (quizCompleteInput: QuizCompleteInput, options?: RequestInit): Promise<QuizSession> => {
+
+  return customFetch<QuizSession>(getCompleteQuizUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(quizCompleteInput)
+  }
+);}
+
+
+
+
+export const getCompleteQuizMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeQuiz>>, TError,{data: BodyType<QuizCompleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeQuiz>>, TError,{data: BodyType<QuizCompleteInput>}, TContext> => {
+
+const mutationKey = ['completeQuiz'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeQuiz>>, {data: BodyType<QuizCompleteInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  completeQuiz(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteQuizMutationResult = NonNullable<Awaited<ReturnType<typeof completeQuiz>>>
+    export type CompleteQuizMutationBody = BodyType<QuizCompleteInput>
+    export type CompleteQuizMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Save a completed quiz result and update streak
+ */
+export const useCompleteQuiz = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeQuiz>>, TError,{data: BodyType<QuizCompleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof completeQuiz>>,
+        TError,
+        {data: BodyType<QuizCompleteInput>},
+        TContext
+      > => {
+      return useMutation(getCompleteQuizMutationOptions(options));
+    }
+
+export const getGetQuizHistoryUrl = () => {
+
+
+
+
+  return `/api/quiz/history`
+}
+
+/**
+ * @summary Get past quiz sessions
+ */
+export const getQuizHistory = async ( options?: RequestInit): Promise<QuizSession[]> => {
+
+  return customFetch<QuizSession[]>(getGetQuizHistoryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQuizHistoryQueryKey = () => {
+    return [
+    `/api/quiz/history`
+    ] as const;
+    }
+
+
+export const getGetQuizHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getQuizHistory>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuizHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQuizHistoryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQuizHistory>>> = ({ signal }) => getQuizHistory({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQuizHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQuizHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getQuizHistory>>>
+export type GetQuizHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get past quiz sessions
+ */
+
+export function useGetQuizHistory<TData = Awaited<ReturnType<typeof getQuizHistory>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuizHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQuizHistoryQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -20,6 +20,10 @@ tags:
     description: Flashcard sets for revision
   - name: stats
     description: Study progress statistics
+  - name: streak
+    description: Study streak tracking
+  - name: quiz
+    description: Timed quiz sessions
 paths:
   /auth/user:
     get:
@@ -472,6 +476,85 @@ paths:
                 items:
                   $ref: "#/components/schemas/ActivityItem"
 
+  /streak:
+    get:
+      operationId: getStreak
+      tags: [streak]
+      summary: Get the current user's study streak
+      responses:
+        "200":
+          description: Study streak data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudyStreak"
+
+  /streak/record:
+    post:
+      operationId: recordStudyActivity
+      tags: [streak]
+      summary: Record a study activity and update the streak
+      responses:
+        "200":
+          description: Updated streak
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudyStreak"
+
+  /quiz/generate:
+    post:
+      operationId: generateQuiz
+      tags: [quiz]
+      summary: AI-generate a timed quiz
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizGenerateInput"
+      responses:
+        "200":
+          description: Generated quiz with questions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedQuiz"
+
+  /quiz/complete:
+    post:
+      operationId: completeQuiz
+      tags: [quiz]
+      summary: Save a completed quiz result and update streak
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizCompleteInput"
+      responses:
+        "200":
+          description: Saved quiz session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizSession"
+
+  /quiz/history:
+    get:
+      operationId: getQuizHistory
+      tags: [quiz]
+      summary: Get past quiz sessions
+      responses:
+        "200":
+          description: List of past quiz sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuizSession"
+
 components:
   parameters:
     AuthorizationSessionHeader:
@@ -896,4 +979,141 @@ components:
         - title
         - subject
         - level
+        - createdAt
+
+    StudyStreak:
+      type: object
+      properties:
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        lastStudiedDate:
+          type: ["string", "null"]
+      required:
+        - currentStreak
+        - longestStreak
+        - lastStudiedDate
+
+    QuizGenerateInput:
+      type: object
+      properties:
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: string
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+      required:
+        - subject
+        - level
+        - topic
+        - difficulty
+
+    QuizQuestion:
+      type: object
+      properties:
+        question:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        correctIndex:
+          type: integer
+        explanation:
+          type: string
+      required:
+        - question
+        - options
+        - correctIndex
+        - explanation
+
+    GeneratedQuiz:
+      type: object
+      properties:
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: string
+        difficulty:
+          type: string
+        timePerQuestion:
+          type: integer
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuizQuestion"
+      required:
+        - subject
+        - level
+        - topic
+        - difficulty
+        - timePerQuestion
+        - questions
+
+    QuizCompleteInput:
+      type: object
+      properties:
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: string
+        difficulty:
+          type: string
+        score:
+          type: integer
+        totalQuestions:
+          type: integer
+        timePerQuestion:
+          type: integer
+      required:
+        - subject
+        - level
+        - topic
+        - difficulty
+        - score
+        - totalQuestions
+        - timePerQuestion
+
+    QuizSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: ["string", "null"]
+        subject:
+          type: string
+        level:
+          type: string
+        topic:
+          type: string
+        difficulty:
+          type: string
+        score:
+          type: integer
+        totalQuestions:
+          type: integer
+        timePerQuestion:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - subject
+        - level
+        - topic
+        - difficulty
+        - score
+        - totalQuestions
+        - timePerQuestion
         - createdAt

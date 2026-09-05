@@ -1,7 +1,9 @@
 import { Link, useLocation } from "wouter";
-import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User } from "lucide-react";
+import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User, Zap, Flame } from "lucide-react";
+import { useGetStreak } from "@workspace/api-client-react";
 import { useStudent } from "@/contexts/StudentContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { WILDO_LOGO } from "@/lib/branding";
 import { useState } from "react";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -14,6 +16,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/tutor", label: "AI Tutor", icon: Brain },
+    { href: "/quiz", label: "Timed Quiz", icon: Zap },
     { href: "/notes", label: "Notes", icon: BookOpen },
     { href: "/flashcards", label: "Flashcards", icon: Library },
     { href: "/revision", label: "Revision Mode", icon: GraduationCap },
@@ -23,15 +26,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "Student"
     : null;
 
+  const { data: streak } = useGetStreak();
+
   return (
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
       <aside className="w-64 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex-shrink-0 flex flex-col hidden md:flex">
         <div className="p-5 border-b border-sidebar-border/50">
           <div className="flex items-center gap-3">
             <img
-              src="/cambridge-tutor/wildo-logo.png"
+              src={WILDO_LOGO}
               alt="Wildo logo"
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/30 flex-shrink-0"
+              className="w-10 h-10 rounded-full object-contain bg-white ring-2 ring-primary/30 flex-shrink-0"
             />
             <div>
               <h1 className="text-lg font-bold text-sidebar-primary tracking-tight font-serif leading-tight">Wildo</h1>
@@ -133,13 +138,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
+          {/* Streak */}
+          {streak && streak.currentStreak > 0 && (
+            <Link href="/quiz">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 transition-colors cursor-pointer">
+                <Flame className="w-4 h-4 text-orange-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-orange-600 dark:text-orange-400 leading-tight">
+                    {streak.currentStreak} day streak 🔥
+                  </p>
+                  <p className="text-[10px] text-orange-500/70 leading-tight">Best: {streak.longestStreak} days</p>
+                </div>
+              </div>
+            </Link>
+          )}
+
           {/* Creator credit */}
           <div className="pt-2 border-t border-sidebar-border/30 mt-1">
             <div className="flex items-center gap-2 px-1 mb-1.5">
               <img
-                src="/cambridge-tutor/wildo-logo.png"
+                src={WILDO_LOGO}
                 alt="Wildo"
-                className="w-5 h-5 rounded-full object-cover opacity-70"
+                className="w-5 h-5 rounded-full object-contain bg-white opacity-70"
               />
               <span className="text-[11px] text-sidebar-foreground/40 font-medium">Wildo · Created by I.Nairoo</span>
             </div>
