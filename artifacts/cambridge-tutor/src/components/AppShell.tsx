@@ -1,10 +1,10 @@
 import { Link, useLocation } from "wouter";
-import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User, Zap, Flame, Mic } from "lucide-react";
+import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User, Zap, Flame, Mic, Menu, X } from "lucide-react";
 import { useGetStreak } from "@workspace/api-client-react";
 import { useStudent } from "@/contexts/StudentContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { WILDO_LOGO } from "@/lib/branding";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -12,6 +12,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
   const [showLevelMenu, setShowLevelMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -29,9 +30,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const { data: streak } = useGetStreak();
 
+  useEffect(() => {
+    setShowMobileMenu(false);
+  }, [location]);
+
+  useEffect(() => {
+    if (!showMobileMenu) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowMobileMenu(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showMobileMenu]);
+
   return (
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
-      <aside className="w-64 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex-shrink-0 flex flex-col hidden md:flex">
+      {showMobileMenu && (
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          data-testid="button-mobile-menu-backdrop"
+          onClick={() => setShowMobileMenu(false)}
+          className="fixed inset-0 z-40 bg-slate-950/45 md:hidden"
+        />
+      )}
+      <aside
+        aria-label="Main navigation"
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(19rem,calc(100vw-3rem))] flex-shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-2xl transition-transform duration-200 ease-out md:relative md:inset-auto md:z-auto md:w-64 md:translate-x-0 md:shadow-none ${showMobileMenu ? "pointer-events-auto translate-x-0" : "pointer-events-none -translate-x-full md:pointer-events-auto"}`}
+      >
         <div className="p-5 border-b border-sidebar-border/50">
           <div className="flex items-center gap-3">
             <img
@@ -59,7 +85,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
             return (
               <Link key={item.href} href={item.href}>
-                <div className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}>
+                <div onClick={() => setShowMobileMenu(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}>
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
                 </div>
@@ -174,6 +200,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden bg-background">
+        <header className="flex shrink-0 items-center justify-between border-b border-border/60 bg-background px-4 py-3 md:hidden">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <img
+              src={WILDO_LOGO}
+              alt="Wildo logo"
+              className="h-9 w-9 shrink-0 rounded-full object-contain bg-white ring-2 ring-primary/20"
+            />
+            <div className="min-w-0">
+              <p className="truncate font-serif text-base font-bold leading-tight text-primary">Wildo</p>
+              <p className="truncate text-[10px] leading-tight text-muted-foreground">Cambridge AI Tutor</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label={showMobileMenu ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={showMobileMenu}
+            data-testid="button-mobile-menu"
+            onClick={() => setShowMobileMenu((open) => !open)}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {showMobileMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </header>
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-5xl mx-auto h-full">
             {children}
