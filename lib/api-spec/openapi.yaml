@@ -1156,6 +1156,10 @@ components:
           type: string
           pattern: "^[0-9]{4}$"
           description: Exact four-digit Cambridge syllabus code confirmed by the student.
+        mode:
+          type: string
+          enum: [iceBreaker, individualTalk, conversation]
+          description: Speaking-session part. Ice breaker responses are not assessed.
         question:
           type: string
         audioBase64:
@@ -1170,6 +1174,7 @@ components:
         - subject
         - level
         - syllabusCode
+        - mode
         - question
         - audioBase64
 

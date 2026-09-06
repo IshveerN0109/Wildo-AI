@@ -262,6 +262,18 @@ export interface QuizSession {
   createdAt: string;
 }
 
+/**
+ * Speaking-session part. Ice breaker responses are not assessed.
+ */
+export type OralPracticeEvaluateInputMode = typeof OralPracticeEvaluateInputMode[keyof typeof OralPracticeEvaluateInputMode];
+
+
+export const OralPracticeEvaluateInputMode = {
+  iceBreaker: 'iceBreaker',
+  individualTalk: 'individualTalk',
+  conversation: 'conversation',
+} as const;
+
 export type OralPracticeEvaluateInputAudioFormat = typeof OralPracticeEvaluateInputAudioFormat[keyof typeof OralPracticeEvaluateInputAudioFormat];
 
 
@@ -292,6 +304,8 @@ export interface OralPracticeEvaluateInput {
      * @pattern ^[0-9]{4}$
      */
   syllabusCode: string;
+  /** Speaking-session part. Ice breaker responses are not assessed. */
+  mode: OralPracticeEvaluateInputMode;
   question: string;
   audioBase64: string;
   audioFormat?: OralPracticeEvaluateInputAudioFormat;

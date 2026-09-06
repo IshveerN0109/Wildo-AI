@@ -38,6 +38,7 @@ export * from './openaiVoiceMessageInput';
 export * from './oralPracticeCriterion';
 export * from './oralPracticeEvaluateInput';
 export * from './oralPracticeEvaluateInputAudioFormat';
+export * from './oralPracticeEvaluateInputMode';
 export * from './oralPracticeEvaluateInputVoice';
 export * from './oralPracticeEvaluation';
 export * from './oralPracticeScore';

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { OralPracticeEvaluateInputAudioFormat } from './oralPracticeEvaluateInputAudioFormat';
+import type { OralPracticeEvaluateInputMode } from './oralPracticeEvaluateInputMode';
 import type { OralPracticeEvaluateInputVoice } from './oralPracticeEvaluateInputVoice';
 
 export interface OralPracticeEvaluateInput {
@@ -16,6 +17,8 @@ export interface OralPracticeEvaluateInput {
      * @pattern ^[0-9]{4}$
      */
   syllabusCode: string;
+  /** Speaking-session part. Ice breaker responses are not assessed. */
+  mode: OralPracticeEvaluateInputMode;
   question: string;
   audioBase64: string;
   audioFormat?: OralPracticeEvaluateInputAudioFormat;

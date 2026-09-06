@@ -27,6 +27,8 @@ type SyllabusProfile = {
   criteria: OralCriterionConfig[];
 };
 
+type TalkMode = "iceBreaker" | "individualTalk" | "conversation";
+
 const SYLLABUS_PROFILES: Record<string, SyllabusProfile> = {
   "0500": {
     code: "0500",
@@ -122,6 +124,7 @@ Important accuracy rules:
 - Use only the configured syllabus profile supplied below. Do not substitute a generic Cambridge-style rubric.
 - Do not invent an official syllabus code, paper number, mark allocation, grade boundary, assessment objective, or quotation from a mark scheme.
 - This is formative practice feedback, not an official Cambridge result.
+- The student may choose any topic. Treat the student's free-text topic as the subject of the speaking task, not as evidence that the topic is on an official topic list.
 - Be fair to international learners. Do not penalise an accent by itself; assess intelligibility, pronunciation features, fluency, range, accuracy, and ability to communicate meaning.
 - Do not reward memorised filler or penalise a natural pause.
 - Base every comment on the transcript. If the transcript does not provide enough evidence for pronunciation, say so rather than guessing.
@@ -159,23 +162,57 @@ function asSyllabusCode(value: unknown): string {
   return /^\d{4}$/.test(code) ? code : "";
 }
 
-function buildSyllabusPrompt(profile: SyllabusProfile | undefined): string {
+function asTalkMode(value: unknown): TalkMode {
+  return value === "iceBreaker" || value === "conversation" ? value : "individualTalk";
+}
+
+function criteriaForMode(profile: SyllabusProfile, mode: TalkMode): OralCriterionConfig[] {
+  if (mode === "iceBreaker") return [];
+  if (profile.code === "0500") {
+    return profile.criteria.filter((criterion) =>
+      mode === "individualTalk"
+        ? criterion.id === "individualTalkSpeaking"
+        : criterion.id.startsWith("conversation"),
+    );
+  }
+  return profile.criteria;
+}
+
+function buildSyllabusPrompt(profile: SyllabusProfile | undefined, mode: TalkMode): string {
+  const modeGuidance =
+    mode === "iceBreaker"
+      ? `Speaking mode: Ice breaker.
+- This is the unassessed opening of the speaking session.
+- Do not score it, do not award marks, and do not present a performance judgment as an assessment.
+- Respond naturally and invite the student into the session.`
+      : mode === "individualTalk"
+        ? `Speaking mode: Individual talk.
+- The student speaks independently about their chosen topic.
+- Assess only the individual-talk criteria configured for the syllabus profile.`
+        : `Speaking mode: Conversation talk.
+- The student is responding in an examiner conversation about their chosen topic.
+- Assess only the conversation criteria configured for the syllabus profile.`;
+
   if (!profile) {
     return `${BASE_ORAL_SYSTEM_PROMPT}
 
+${modeGuidance}
+
 Syllabus profile:
 - The student supplied a four-digit Cambridge syllabus code, but no approved oral assessment profile is configured for it.
-- Do not score this response. Return an empty score.criteria array, null-style score values are not allowed in your JSON, and explain in examinerComment that no mark scheme is available.
+- Do not score this response. Return an empty score.criteria array, set overall and maxTotalMarks to null, and explain in examinerComment that no mark scheme is available.
 - Do not infer criteria, objectives, marks, or a source from the code.`;
   }
 
-  const criteria = profile.criteria
+  const criteria = criteriaForMode(profile, mode)
     .map(
       (criterion) =>
         `- ${criterion.id}: ${criterion.label}; objective ${criterion.assessmentObjective}; maximum ${criterion.maxMarks} marks; ${criterion.guidance}`,
     )
     .join("\n");
   return `${BASE_ORAL_SYSTEM_PROMPT}
+
+${modeGuidance}
 
 Configured syllabus profile:
 - Code: ${profile.code}
@@ -193,22 +230,34 @@ Scoring:
 - A short answer is not automatically a bad answer, but explain when it limits evidence.`;
 }
 
-function unscoredResult(syllabusCode: string) {
+function unscoredResult(syllabusCode: string, mode: TalkMode) {
   return {
     overall: null,
     maxTotalMarks: null,
     criteria: [],
-    examinerComment: `No approved oral mark scheme is configured for syllabus ${syllabusCode}. This attempt is not scored.`,
+    examinerComment:
+      mode === "iceBreaker"
+        ? "Ice breaker practice is not assessed and no marks are awarded."
+        : `No approved oral mark scheme is configured for syllabus ${syllabusCode}. This attempt is not scored.`,
     strengths: [],
-    improvements: ["Confirm the syllabus code and use an approved oral assessment profile before relying on marks."],
+    improvements:
+      mode === "iceBreaker"
+        ? []
+        : ["Confirm the syllabus code and use an approved oral assessment profile before relying on marks."],
   };
 }
 
-function normalizeScore(value: unknown, profile: SyllabusProfile | undefined, syllabusCode: string) {
-  if (!profile) return unscoredResult(syllabusCode);
+function normalizeScore(
+  value: unknown,
+  profile: SyllabusProfile | undefined,
+  syllabusCode: string,
+  mode: TalkMode,
+) {
+  if (!profile || mode === "iceBreaker") return unscoredResult(syllabusCode, mode);
+  const applicableCriteria = criteriaForMode(profile, mode);
   const rawScore = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
   const rawCriteria = Array.isArray(rawScore.criteria) ? rawScore.criteria : [];
-  const criteria = profile.criteria.map((criterion) => {
+  const criteria = applicableCriteria.map((criterion) => {
     const result = rawCriteria.find(
       (item) =>
         item &&
@@ -231,7 +280,7 @@ function normalizeScore(value: unknown, profile: SyllabusProfile | undefined, sy
   });
   return {
     overall: criteria.reduce((total, criterion) => total + criterion.marks, 0),
-    maxTotalMarks: profile.criteria.reduce((total, criterion) => total + criterion.maxMarks, 0),
+    maxTotalMarks: applicableCriteria.reduce((total, criterion) => total + criterion.maxMarks, 0),
     criteria,
     examinerComment: asString(rawScore.examinerComment) || "Evidence-based formative feedback.",
     strengths: Array.isArray(rawScore.strengths)
@@ -254,6 +303,7 @@ router.post("/oral-practice/evaluate", async (req, res): Promise<void> => {
   const level = asString(parsedBody.data.level);
   const question = asString(parsedBody.data.question);
   const syllabusCode = asSyllabusCode(parsedBody.data.syllabusCode);
+  const mode = asTalkMode(parsedBody.data.mode);
   const audioBase64 = asString(parsedBody.data.audioBase64);
   const requestedFormat = parsedBody.data.audioFormat ?? "webm";
   const voice = asVoice(parsedBody.data.voice);
@@ -286,15 +336,14 @@ router.post("/oral-practice/evaluate", async (req, res): Promise<void> => {
       temperature: 0.2,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: buildSyllabusPrompt(syllabusProfile) },
+        { role: "system", content: buildSyllabusPrompt(syllabusProfile, mode) },
         {
           role: "user",
-          content: `${buildSyllabusPrompt(syllabusProfile)}
-
-Level: ${level}
+          content: `Level: ${level}
 Subject: ${subject}
 Confirmed Cambridge syllabus code: ${syllabusCode}
-Cambridge-style oral question: ${question}
+Speaking mode: ${mode}
+Student's chosen topic or prompt: ${question}
 Student transcript:
 ${transcript}`,
         },
@@ -320,7 +369,7 @@ ${transcript}`,
       audioMimeType: "audio/mpeg",
       voice,
       inputFormat: requestedFormat,
-      score: normalizeScore(evaluation.score, syllabusProfile, syllabusCode),
+      score: normalizeScore(evaluation.score, syllabusProfile, syllabusCode, mode),
       verification: {
         confidence: syllabusProfile ? "medium" : "low",
         syllabusCode,
@@ -329,8 +378,10 @@ ${transcript}`,
         assessmentObjectives: syllabusProfile?.assessmentObjectives ?? [],
         markSchemeReference: syllabusProfile?.markSchemeReference ?? null,
         markSchemeStatus: syllabusProfile ? "configured" : "unavailable",
-        markSchemeNote: syllabusProfile
-          ? "Formative practice only; marks follow the configured syllabus profile and are not an official Cambridge result."
+        markSchemeNote: mode === "iceBreaker"
+          ? "Ice breaker practice is not assessed and no marks are awarded. The selected syllabus profile is used only to frame the speaking session."
+          : syllabusProfile
+            ? "Formative practice only; marks follow the configured syllabus profile and are not an official Cambridge result."
           : `No approved oral assessment profile is configured for syllabus ${syllabusCode}. Wildo has not invented a mark-scheme reference or score.`,
       },
     };

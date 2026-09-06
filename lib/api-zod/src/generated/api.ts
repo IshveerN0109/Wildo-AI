@@ -536,6 +536,7 @@ export const EvaluateOralPracticeBody = zod.object({
   "subject": zod.string(),
   "level": zod.string(),
   "syllabusCode": zod.string().regex(evaluateOralPracticeBodySyllabusCodeRegExp).describe('Exact four-digit Cambridge syllabus code confirmed by the student.'),
+  "mode": zod.enum(['iceBreaker', 'individualTalk', 'conversation']).describe('Speaking-session part. Ice breaker responses are not assessed.'),
   "question": zod.string(),
   "audioBase64": zod.string(),
   "audioFormat": zod.enum(['webm', 'mp4', 'wav', 'mp3']).optional(),
