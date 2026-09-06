@@ -17,6 +17,7 @@ import Onboarding from "@/pages/onboarding";
 import Terms from "@/pages/terms";
 import Quiz from "@/pages/quiz";
 import OralPractice from "@/pages/oral-practice";
+import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -31,7 +32,8 @@ function Router() {
   return (
     <AppShell>
       <Switch>
-        <Route path="/" component={Dashboard} />
+        <Route path="/" component={Tutor} />
+        <Route path="/dashboard" component={Dashboard} />
         <Route path="/tutor" component={Tutor} />
         <Route path="/notes" component={Notes} />
         <Route path="/notes/:id" component={NoteDetail} />
@@ -40,6 +42,7 @@ function Router() {
         <Route path="/revision" component={Revision} />
         <Route path="/quiz" component={Quiz} />
         <Route path="/oral-practice" component={OralPractice} />
+        <Route path="/profile" component={Profile} />
         <Route path="/terms" component={Terms} />
         <Route component={NotFound} />
       </Switch>

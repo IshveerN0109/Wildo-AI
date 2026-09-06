@@ -5,10 +5,24 @@
  * Cambridge AI Tutor API
  * OpenAPI spec version: 0.1.0
  */
+import type { StudyStreakRewardStatus } from './studyStreakRewardStatus';
+import type { StudyStreakWeek } from './studyStreakWeek';
 
 export interface StudyStreak {
+  /** Consecutive qualifying weeks. A week qualifies when at least six days reach the daily question target. */
   currentStreak: number;
+  /** Longest run of qualifying weeks. */
   longestStreak: number;
   /** @nullable */
-  lastStudiedDate: string | null;
+  lastStudiedDate: Date | null;
+  currentWeekDays: number;
+  currentWeekQuestions: number;
+  todayQuestions: number;
+  dailyQuestionTarget: number;
+  weeklyDayTarget: number;
+  rewardWeeks: number;
+  nextMonthFreeEligible: boolean;
+  weeksUntilReward: number;
+  rewardStatus: StudyStreakRewardStatus;
+  weekHistory: StudyStreakWeek[];
 }

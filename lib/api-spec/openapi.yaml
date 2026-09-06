@@ -1013,14 +1013,66 @@ components:
       properties:
         currentStreak:
           type: integer
+          description: Consecutive qualifying weeks. A week qualifies when at least six days reach the daily question target.
         longestStreak:
           type: integer
+          description: Longest run of qualifying weeks.
         lastStudiedDate:
           type: ["string", "null"]
+          format: date
+        currentWeekDays:
+          type: integer
+        currentWeekQuestions:
+          type: integer
+        todayQuestions:
+          type: integer
+        dailyQuestionTarget:
+          type: integer
+        weeklyDayTarget:
+          type: integer
+        rewardWeeks:
+          type: integer
+        nextMonthFreeEligible:
+          type: boolean
+        weeksUntilReward:
+          type: integer
+        rewardStatus:
+          type: string
+          enum: [in_progress, eligible, reset]
+        weekHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/StudyStreakWeek"
       required:
         - currentStreak
         - longestStreak
         - lastStudiedDate
+        - currentWeekDays
+        - currentWeekQuestions
+        - todayQuestions
+        - dailyQuestionTarget
+        - weeklyDayTarget
+        - rewardWeeks
+        - nextMonthFreeEligible
+        - weeksUntilReward
+        - rewardStatus
+        - weekHistory
+
+    StudyStreakWeek:
+      type: object
+      properties:
+        weekStart:
+          type: string
+          format: date
+        activeDays:
+          type: integer
+        questions:
+          type: integer
+        qualified:
+          type: boolean
+        isCurrentWeek:
+          type: boolean
+      required: [weekStart, activeDays, questions, qualified, isCurrentWeek]
 
     QuizGenerateInput:
       type: object

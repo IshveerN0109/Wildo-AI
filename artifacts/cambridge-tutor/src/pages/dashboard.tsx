@@ -40,10 +40,10 @@ export default function Dashboard() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-orange-700 dark:text-orange-300">
-              {currentStreak} day streak — keep it up! 🔥
+              {currentStreak} week streak — keep it up! 🔥
             </p>
             <p className="text-xs text-orange-500 mt-0.5">
-              Longest streak: {longestStreak} day{longestStreak !== 1 ? "s" : ""} · Study every day to grow it
+              Longest streak: {longestStreak} week{longestStreak !== 1 ? "s" : ""} · Reach 6 qualifying days each week to grow it
             </p>
           </div>
           {currentStreak >= longestStreak && longestStreak > 1 && (

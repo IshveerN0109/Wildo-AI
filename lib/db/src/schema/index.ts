@@ -4,4 +4,5 @@ export * from "./messages";
 export * from "./notes";
 export * from "./flashcards";
 export * from "./streaks";
+export * from "./studyActivityDays";
 export * from "./quizzes";

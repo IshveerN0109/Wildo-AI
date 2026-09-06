@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull } from "drizzle-orm";
 import { db, conversations, messages } from "@workspace/db";
+import { recordQuestionForUser } from "../streaks";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import {
   CreateOpenaiConversationBody,
@@ -358,6 +359,9 @@ router.post("/openai/conversations/:id/messages", async (req, res): Promise<void
     role: "user",
     content: body.data.content,
   });
+  if (req.isAuthenticated()) {
+    await recordQuestionForUser(req.user.id);
+  }
 
   const history = await db
     .select()

@@ -440,9 +440,25 @@ export const GetRecentActivityResponse = zod.array(GetRecentActivityResponseItem
  * @summary Get the current user's study streak
  */
 export const GetStreakResponse = zod.object({
-  "currentStreak": zod.number(),
-  "longestStreak": zod.number(),
-  "lastStudiedDate": zod.string().nullable()
+  "currentStreak": zod.number().describe('Consecutive qualifying weeks. A week qualifies when at least six days reach the daily question target.'),
+  "longestStreak": zod.number().describe('Longest run of qualifying weeks.'),
+  "lastStudiedDate": zod.coerce.date().nullable(),
+  "currentWeekDays": zod.number(),
+  "currentWeekQuestions": zod.number(),
+  "todayQuestions": zod.number(),
+  "dailyQuestionTarget": zod.number(),
+  "weeklyDayTarget": zod.number(),
+  "rewardWeeks": zod.number(),
+  "nextMonthFreeEligible": zod.boolean(),
+  "weeksUntilReward": zod.number(),
+  "rewardStatus": zod.enum(['in_progress', 'eligible', 'reset']),
+  "weekHistory": zod.array(zod.object({
+  "weekStart": zod.coerce.date(),
+  "activeDays": zod.number(),
+  "questions": zod.number(),
+  "qualified": zod.boolean(),
+  "isCurrentWeek": zod.boolean()
+}))
 })
 
 
@@ -450,9 +466,25 @@ export const GetStreakResponse = zod.object({
  * @summary Record a study activity and update the streak
  */
 export const RecordStudyActivityResponse = zod.object({
-  "currentStreak": zod.number(),
-  "longestStreak": zod.number(),
-  "lastStudiedDate": zod.string().nullable()
+  "currentStreak": zod.number().describe('Consecutive qualifying weeks. A week qualifies when at least six days reach the daily question target.'),
+  "longestStreak": zod.number().describe('Longest run of qualifying weeks.'),
+  "lastStudiedDate": zod.coerce.date().nullable(),
+  "currentWeekDays": zod.number(),
+  "currentWeekQuestions": zod.number(),
+  "todayQuestions": zod.number(),
+  "dailyQuestionTarget": zod.number(),
+  "weeklyDayTarget": zod.number(),
+  "rewardWeeks": zod.number(),
+  "nextMonthFreeEligible": zod.boolean(),
+  "weeksUntilReward": zod.number(),
+  "rewardStatus": zod.enum(['in_progress', 'eligible', 'reset']),
+  "weekHistory": zod.array(zod.object({
+  "weekStart": zod.coerce.date(),
+  "activeDays": zod.number(),
+  "questions": zod.number(),
+  "qualified": zod.boolean(),
+  "isCurrentWeek": zod.boolean()
+}))
 })
 
 

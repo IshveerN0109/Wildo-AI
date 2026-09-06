@@ -51,5 +51,7 @@ export * from './quizGenerateInputDifficulty';
 export * from './quizQuestion';
 export * from './quizSession';
 export * from './studyStreak';
+export * from './studyStreakRewardStatus';
+export * from './studyStreakWeek';
 export * from './studySummary';
 export * from './subjectCount';

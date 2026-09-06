@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User, Zap, Flame, Mic, Menu, X } from "lucide-react";
+import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User, Zap, Flame, Mic, Menu, X, Star } from "lucide-react";
 import { useGetStreak } from "@workspace/api-client-react";
 import { useStudent } from "@/contexts/StudentContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,13 +15,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const navItems = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/tutor", label: "AI Tutor", icon: Brain },
+    { href: "/tutor", label: "AI Tutor", icon: Brain, featured: true },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/quiz", label: "Timed Quiz", icon: Zap },
     { href: "/notes", label: "Notes", icon: BookOpen },
     { href: "/flashcards", label: "Flashcards", icon: Library },
     { href: "/revision", label: "Revision Mode", icon: GraduationCap },
     { href: "/oral-practice", label: "Oral English practice", icon: Mic },
+    { href: "/profile", label: "My profile", icon: User },
   ];
 
   const displayName = user
@@ -85,9 +86,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
             return (
               <Link key={item.href} href={item.href}>
-                <div onClick={() => setShowMobileMenu(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}>
+                <div onClick={() => setShowMobileMenu(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : item.featured ? "bg-sidebar-primary/10 text-sidebar-primary hover:bg-sidebar-primary/20" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}>
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
+                  {item.featured && <Star className="ml-auto h-3.5 w-3.5 fill-current text-amber-300" aria-label="Main study space" />}
                 </div>
               </Link>
             );
@@ -172,9 +174,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Flame className="w-4 h-4 text-orange-500 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-orange-600 dark:text-orange-400 leading-tight">
-                    {streak.currentStreak} day streak 🔥
+                    {streak.currentStreak} week streak 🔥
                   </p>
-                  <p className="text-[10px] text-orange-500/70 leading-tight">Best: {streak.longestStreak} days</p>
+                   <p className="text-[10px] text-orange-500/70 leading-tight">Best: {streak.longestStreak} weeks</p>
                 </div>
               </div>
             </Link>

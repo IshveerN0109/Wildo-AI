@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, quizSessions, studyStreaks } from "@workspace/db";
-import { eq, desc, isNull } from "drizzle-orm";
+import { db, quizSessions } from "@workspace/db";
+import { desc, eq, isNull } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 
 const router: IRouter = Router();
@@ -92,26 +92,6 @@ router.post("/quiz/complete", async (req, res): Promise<void> => {
     .insert(quizSessions)
     .values({ userId: uid, subject, level, topic, difficulty, score, totalQuestions, timePerQuestion })
     .returning();
-
-  // Update streak for authenticated users
-  if (uid) {
-    const today = new Date().toISOString().split("T")[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-    const [existing] = await db.select().from(studyStreaks).where(eq(studyStreaks.userId, uid));
-
-    if (!existing) {
-      await db
-        .insert(studyStreaks)
-        .values({ userId: uid, currentStreak: 1, longestStreak: 1, lastStudiedDate: today });
-    } else if (existing.lastStudiedDate !== today) {
-      const newStreak = existing.lastStudiedDate === yesterday ? existing.currentStreak + 1 : 1;
-      const newLongest = Math.max(newStreak, existing.longestStreak);
-      await db
-        .update(studyStreaks)
-        .set({ currentStreak: newStreak, longestStreak: newLongest, lastStudiedDate: today, updatedAt: new Date() })
-        .where(eq(studyStreaks.userId, uid));
-    }
-  }
 
   res.json(session);
 });

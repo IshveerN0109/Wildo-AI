@@ -199,11 +199,40 @@ export interface ActivityItem {
   createdAt: string;
 }
 
+export type StudyStreakRewardStatus = typeof StudyStreakRewardStatus[keyof typeof StudyStreakRewardStatus];
+
+
+export const StudyStreakRewardStatus = {
+  in_progress: 'in_progress',
+  eligible: 'eligible',
+  reset: 'reset',
+} as const;
+
+export interface StudyStreakWeek {
+  weekStart: string;
+  activeDays: number;
+  questions: number;
+  qualified: boolean;
+  isCurrentWeek: boolean;
+}
+
 export interface StudyStreak {
+  /** Consecutive qualifying weeks. A week qualifies when at least six days reach the daily question target. */
   currentStreak: number;
+  /** Longest run of qualifying weeks. */
   longestStreak: number;
   /** @nullable */
   lastStudiedDate: string | null;
+  currentWeekDays: number;
+  currentWeekQuestions: number;
+  todayQuestions: number;
+  dailyQuestionTarget: number;
+  weeklyDayTarget: number;
+  rewardWeeks: number;
+  nextMonthFreeEligible: boolean;
+  weeksUntilReward: number;
+  rewardStatus: StudyStreakRewardStatus;
+  weekHistory: StudyStreakWeek[];
 }
 
 export type QuizGenerateInputDifficulty = typeof QuizGenerateInputDifficulty[keyof typeof QuizGenerateInputDifficulty];
