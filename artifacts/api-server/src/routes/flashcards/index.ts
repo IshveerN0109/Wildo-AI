@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull } from "drizzle-orm";
 import { db, flashcardSetsTable, flashcardsTable } from "@workspace/db";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
 import {
   CreateFlashcardSetBody,
   GetFlashcardSetParams,
@@ -65,8 +65,8 @@ router.post("/flashcard-sets/generate", async (req, res): Promise<void> => {
   const cardCount = count ?? 10;
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
-    max_completion_tokens: 8192,
+    model: CHAT_MODEL,
+    max_tokens: 8192,
     messages: [
       {
         role: "system",

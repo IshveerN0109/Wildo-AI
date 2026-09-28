@@ -4,7 +4,7 @@ import {
   speechToText,
   textToSpeech,
 } from "@workspace/integrations-openai-ai-server/audio";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
 import { EvaluateOralPracticeBody, EvaluateOralPracticeResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -332,7 +332,7 @@ router.post("/oral-practice/evaluate", async (req, res): Promise<void> => {
     }
 
     const evaluationResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: CHAT_MODEL,
       temperature: 0.2,
       response_format: { type: "json_object" },
       messages: [

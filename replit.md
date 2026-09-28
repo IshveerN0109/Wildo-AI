@@ -9,7 +9,23 @@ An AI-powered study platform for Cambridge O Level and A Level students. Feature
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string, `OPENAI_API_KEY` — OpenAI API key
+- Required env: `DATABASE_URL` — Postgres connection string; one chat provider API key (see below)
+
+## AI chat provider
+
+The chat tutor (notes/flashcards/quiz generation, oral-practice evaluation) goes through
+`@workspace/integrations-openai-ai-server`, which can target OpenAI, DeepSeek or Gemini —
+all three expose an OpenAI-compatible Chat Completions endpoint, so it's the same `openai`
+SDK instance pointed at a different `baseURL`/model.
+
+- `AI_PROVIDER` — `openai` | `deepseek` | `gemini` (default: `deepseek`)
+- `DEEPSEEK_API_KEY` — required when `AI_PROVIDER=deepseek`
+- `GEMINI_API_KEY` — required when `AI_PROVIDER=gemini`
+- `OPENAI_API_KEY` — required when `AI_PROVIDER=openai` (or via Replit's AI Integrations, see Gotchas)
+- `AI_CHAT_MODEL` — optional override of the provider's default model (e.g. `deepseek-reasoner`, `gemini-2.5-pro`)
+
+Image generation (`lib/image`) and audio transcription (`lib/audio`) stay on OpenAI regardless of
+`AI_PROVIDER` — DeepSeek/Gemini aren't wired up for those.
 
 ## Stack
 
@@ -19,7 +35,7 @@ An AI-powered study platform for Cambridge O Level and A Level students. Feature
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
-- AI: OpenAI GPT-4o via user's own `OPENAI_API_KEY`
+- AI: chat via DeepSeek/OpenAI/Gemini (see "AI chat provider" above); image + audio via OpenAI
 
 ## Where things live
 

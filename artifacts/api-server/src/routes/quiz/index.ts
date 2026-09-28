@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, quizSessions } from "@workspace/db";
 import { desc, eq, isNull } from "drizzle-orm";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
 
 const router: IRouter = Router();
 router.post("/quiz/generate", async (req, res): Promise<void> => {
@@ -53,7 +53,7 @@ Respond ONLY with a JSON object — no markdown, no code fences, no extra text:
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: CHAT_MODEL,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
       response_format: { type: "json_object" },

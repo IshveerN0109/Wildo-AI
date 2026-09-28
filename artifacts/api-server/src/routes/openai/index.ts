@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, isNull } from "drizzle-orm";
 import { db, conversations, messages } from "@workspace/db";
 import { recordQuestionForUser } from "../streaks";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
 import {
   CreateOpenaiConversationBody,
   GetOpenaiConversationParams,
@@ -31,8 +31,8 @@ async function verifyQuestion(
   const subjectCtx = [subject, level].filter(Boolean).join(" ") || "unknown subject";
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      max_completion_tokens: 220,
+      model: CHAT_MODEL,
+      max_tokens: 220,
       temperature: 0,
       messages: [
         {
@@ -395,8 +395,8 @@ router.post("/openai/conversations/:id/messages", async (req, res): Promise<void
 
   let fullResponse = "";
   const stream = await openai.chat.completions.create({
-    model: "gpt-4o",
-    max_completion_tokens: 8192,
+    model: CHAT_MODEL,
+    max_tokens: 8192,
     messages: chatMessages,
     stream: true,
   });
@@ -456,8 +456,8 @@ router.post("/openai/revision-stream", async (req, res): Promise<void> => {
   res.write(`data: ${JSON.stringify({ type: "verification", ...verification })}\n\n`);
 
   const stream = await openai.chat.completions.create({
-    model: "gpt-4o",
-    max_completion_tokens: 8192,
+    model: CHAT_MODEL,
+    max_tokens: 8192,
     messages: chatMessages,
     stream: true,
   });

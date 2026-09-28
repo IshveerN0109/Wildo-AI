@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull } from "drizzle-orm";
 import { db, notesTable } from "@workspace/db";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
 import {
   ListNotesQueryParams,
   CreateNoteBody,
@@ -69,8 +69,8 @@ router.post("/notes/generate", async (req, res): Promise<void> => {
   const { subject, level, topic } = parsed.data;
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
-    max_completion_tokens: 8192,
+    model: CHAT_MODEL,
+    max_tokens: 8192,
     messages: [
       {
         role: "system",
