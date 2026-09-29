@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, flashcardSetsTable, flashcardsTable } from "@workspace/db";
 import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
+import { requireAuth } from "../../lib/require-auth";
 import {
   CreateFlashcardSetBody,
   GetFlashcardSetParams,
@@ -10,11 +11,10 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+router.use(requireAuth);
 
 function userFilter(req: Parameters<Parameters<typeof router.get>[1]>[0]) {
-  return req.isAuthenticated()
-    ? eq(flashcardSetsTable.userId, req.user.id)
-    : isNull(flashcardSetsTable.userId);
+  return eq(flashcardSetsTable.userId, req.user!.id);
 }
 
 router.get("/flashcard-sets", async (req, res): Promise<void> => {
@@ -44,7 +44,7 @@ router.post("/flashcard-sets", async (req, res): Promise<void> => {
   const [set] = await db
     .insert(flashcardSetsTable)
     .values({
-      userId: req.isAuthenticated() ? req.user.id : null,
+       userId: req.user!.id,
       title: parsed.data.title,
       subject: parsed.data.subject,
       level: parsed.data.level,
@@ -103,7 +103,7 @@ FLASHCARD RULES:
   const [set] = await db
     .insert(flashcardSetsTable)
     .values({
-      userId: req.isAuthenticated() ? req.user.id : null,
+       userId: req.user!.id,
       title,
       subject,
       level,

@@ -43,6 +43,38 @@ export const LogoutSuccessValue = {
 } as const;
 export type LogoutSuccess = typeof LogoutSuccessValue;
 
+/**
+ * @nullable
+ */
+export type StudentProfileLevel = typeof StudentProfileLevel[keyof typeof StudentProfileLevel] | null;
+
+
+export const StudentProfileLevel = {
+  O_Level: 'O Level',
+  A_Level: 'A Level',
+} as const;
+
+export interface StudentProfile {
+  /** @nullable */
+  level: StudentProfileLevel;
+}
+
+/**
+ * @nullable
+ */
+export type StudentProfileUpdateLevel = typeof StudentProfileUpdateLevel[keyof typeof StudentProfileUpdateLevel] | null;
+
+
+export const StudentProfileUpdateLevel = {
+  O_Level: 'O Level',
+  A_Level: 'A Level',
+} as const;
+
+export interface StudentProfileUpdate {
+  /** @nullable */
+  level: StudentProfileUpdateLevel;
+}
+
 export interface ErrorEnvelope {
   error: string;
 }

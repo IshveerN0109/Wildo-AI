@@ -114,6 +114,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/LogoutSuccess'
 
+  /student/profile:
+    get:
+      tags: [student]
+      operationId: getStudentProfile
+      summary: Get the authenticated student's saved study profile
+      responses:
+        "200":
+          description: Student profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentProfile"
+        "401":
+          description: Authentication required
+    put:
+      tags: [student]
+      operationId: updateStudentProfile
+      summary: Save the authenticated student's study profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentProfileUpdate"
+      responses:
+        "200":
+          description: Updated student profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentProfile"
+        "401":
+          description: Authentication required
+
   /healthz:
     get:
       operationId: healthCheck
@@ -655,6 +689,20 @@ components:
         success:
           type: boolean
           const: true
+    StudentProfile:
+      type: object
+      required: [level]
+      properties:
+        level:
+          type: ["string", "null"]
+          enum: [O Level, A Level, null]
+    StudentProfileUpdate:
+      type: object
+      required: [level]
+      properties:
+        level:
+          type: ["string", "null"]
+          enum: [O Level, A Level, null]
     ErrorEnvelope:
       type: object
       required: [error]

@@ -1,9 +1,11 @@
 import { Router, type IRouter } from "express";
 import { db, quizSessions } from "@workspace/db";
-import { desc, eq, isNull } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
+import { requireAuth } from "../../lib/require-auth";
 
 const router: IRouter = Router();
+router.use(requireAuth);
 router.post("/quiz/generate", async (req, res): Promise<void> => {
   const { subject, level, topic, difficulty } = req.body as {
     subject: string;
@@ -86,7 +88,7 @@ router.post("/quiz/complete", async (req, res): Promise<void> => {
     timePerQuestion: number;
   };
 
-  const uid = req.isAuthenticated() ? req.user.id : null;
+  const uid = req.user!.id;
 
   const [session] = await db
     .insert(quizSessions)
@@ -97,8 +99,8 @@ router.post("/quiz/complete", async (req, res): Promise<void> => {
 });
 
 router.get("/quiz/history", async (req, res): Promise<void> => {
-  const uid = req.isAuthenticated() ? req.user.id : null;
-  const filter = uid ? eq(quizSessions.userId, uid) : isNull(quizSessions.userId);
+  const uid = req.user!.id;
+  const filter = eq(quizSessions.userId, uid);
   const sessions = await db
     .select()
     .from(quizSessions)

@@ -1,14 +1,16 @@
 import { Router, type IRouter } from "express";
 import { db, notesTable, flashcardSetsTable, conversations } from "@workspace/db";
-import { desc, sql, eq, isNull, and } from "drizzle-orm";
+import { desc, sql, eq } from "drizzle-orm";
+import { requireAuth } from "../../lib/require-auth";
 
 const router: IRouter = Router();
+router.use(requireAuth);
 
 router.get("/stats/summary", async (req, res): Promise<void> => {
-  const uid = req.isAuthenticated() ? req.user.id : null;
-  const noteFilter = uid ? eq(notesTable.userId, uid) : isNull(notesTable.userId);
-  const setFilter = uid ? eq(flashcardSetsTable.userId, uid) : isNull(flashcardSetsTable.userId);
-  const convFilter = uid ? eq(conversations.userId, uid) : isNull(conversations.userId);
+  const uid = req.user!.id;
+  const noteFilter = eq(notesTable.userId, uid);
+  const setFilter = eq(flashcardSetsTable.userId, uid);
+  const convFilter = eq(conversations.userId, uid);
 
   const [noteCount] = await db.select({ count: sql<number>`count(*)::int` }).from(notesTable).where(noteFilter);
   const [setCount] = await db.select({ count: sql<number>`count(*)::int` }).from(flashcardSetsTable).where(setFilter);
@@ -29,10 +31,10 @@ router.get("/stats/summary", async (req, res): Promise<void> => {
 });
 
 router.get("/stats/recent-activity", async (req, res): Promise<void> => {
-  const uid = req.isAuthenticated() ? req.user.id : null;
-  const noteFilter = uid ? eq(notesTable.userId, uid) : isNull(notesTable.userId);
-  const setFilter = uid ? eq(flashcardSetsTable.userId, uid) : isNull(flashcardSetsTable.userId);
-  const convFilter = uid ? eq(conversations.userId, uid) : isNull(conversations.userId);
+  const uid = req.user!.id;
+  const noteFilter = eq(notesTable.userId, uid);
+  const setFilter = eq(flashcardSetsTable.userId, uid);
+  const convFilter = eq(conversations.userId, uid);
 
   const recentNotes = await db
     .select()

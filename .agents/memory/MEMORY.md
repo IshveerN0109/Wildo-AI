@@ -1,3 +1,4 @@
 - [Auth setup](auth-setup.md) — Replit Auth (OIDC) wired end-to-end; email notification via nodemailer/Gmail requires GMAIL_APP_PASSWORD secret.
+- [Cloud student data](cloud-student-data.md) — persistent student data is account-owned in managed PostgreSQL; anonymous persistence is disabled.
 - [Revision Mode streaming](revision-streaming.md) — `/api/openai/revision-stream` uses `{ content }` chunk format (not OpenAI-style), same as the existing tutor SSE endpoint.
 - [replit-auth-web lib fix](replit-auth-web-fix.md) — lib tsconfig must have composite+declarationMap+emitDeclarationOnly; avoid import.meta.env (use document.baseURI instead).

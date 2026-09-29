@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, notesTable } from "@workspace/db";
 import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
+import { requireAuth } from "../../lib/require-auth";
 import {
   ListNotesQueryParams,
   CreateNoteBody,
@@ -13,11 +14,10 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+router.use(requireAuth);
 
 function userFilter(req: Parameters<Parameters<typeof router.get>[1]>[0]) {
-  return req.isAuthenticated()
-    ? eq(notesTable.userId, req.user.id)
-    : isNull(notesTable.userId);
+  return eq(notesTable.userId, req.user!.id);
 }
 
 router.get("/notes", async (req, res): Promise<void> => {
@@ -48,7 +48,7 @@ router.post("/notes", async (req, res): Promise<void> => {
   const [note] = await db
     .insert(notesTable)
     .values({
-      userId: req.isAuthenticated() ? req.user.id : null,
+       userId: req.user!.id,
       title: parsed.data.title,
       content: parsed.data.content,
       subject: parsed.data.subject,
@@ -163,7 +163,7 @@ ACCURACY RULES:
   const [note] = await db
     .insert(notesTable)
     .values({
-      userId: req.isAuthenticated() ? req.user.id : null,
+       userId: req.user!.id,
       title,
       content,
       subject,

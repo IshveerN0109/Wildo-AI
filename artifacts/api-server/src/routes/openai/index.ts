@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, conversations, messages } from "@workspace/db";
 import { recordQuestionForUser } from "../streaks";
 import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
+import { requireAuth } from "../../lib/require-auth";
 import {
   CreateOpenaiConversationBody,
   GetOpenaiConversationParams,
@@ -13,6 +14,7 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+router.use(requireAuth);
 
 // ─── Cambridge Verification Pipeline ────────────────────────────────────────
 
@@ -90,9 +92,7 @@ function buildVerificationContext(v: VerificationResult): string {
 // ────────────────────────────────────────────────────────────────────────────
 
 function userFilter(req: Parameters<Parameters<typeof router.get>[1]>[0]) {
-  return req.isAuthenticated()
-    ? eq(conversations.userId, req.user.id)
-    : isNull(conversations.userId);
+  return eq(conversations.userId, req.user!.id);
 }
 
 const CAMBRIDGE_SYSTEM_PROMPT = `You are CamAI — an elite AI study tutor built exclusively for Cambridge International Examinations (O Level and A Level). You are not a generic AI. You know the Cambridge system inside out.
@@ -265,7 +265,7 @@ router.post("/openai/conversations", async (req, res): Promise<void> => {
       title: parsed.data.title,
       subject: parsed.data.subject ?? null,
       level: parsed.data.level ?? null,
-      userId: req.isAuthenticated() ? req.user.id : null,
+       userId: req.user!.id,
     })
     .returning();
   res.status(201).json(conv);

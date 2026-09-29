@@ -85,6 +85,26 @@ export const LogoutMobileSessionResponse = zod.object({
 
 
 /**
+ * @summary Get the authenticated student's saved study profile
+ */
+export const GetStudentProfileResponse = zod.object({
+  "level": zod.union([zod.literal('O Level'),zod.literal('A Level'),zod.literal(null)]).nullable()
+})
+
+
+/**
+ * @summary Save the authenticated student's study profile
+ */
+export const UpdateStudentProfileBody = zod.object({
+  "level": zod.union([zod.literal('O Level'),zod.literal('A Level'),zod.literal(null)]).nullable()
+})
+
+export const UpdateStudentProfileResponse = zod.object({
+  "level": zod.union([zod.literal('O Level'),zod.literal('A Level'),zod.literal(null)]).nullable()
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */
