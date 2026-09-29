@@ -294,7 +294,8 @@ export const DeleteNoteResponse = zod.void()
 export const GenerateNoteBody = zod.object({
   "subject": zod.string(),
   "level": zod.string(),
-  "topic": zod.string()
+  "topic": zod.string(),
+  "mode": zod.enum(['detailedNotes', 'chapterSummary']).optional().describe('Whether to generate full study notes or a concise chapter summary.')
 })
 
 export const GenerateNoteResponse = zod.object({

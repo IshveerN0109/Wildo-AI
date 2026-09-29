@@ -26,6 +26,7 @@ export * from './mobileTokenExchangeRequest';
 export * from './mobileTokenExchangeSuccess';
 export * from './note';
 export * from './noteGenerateInput';
+export * from './noteGenerateInputMode';
 export * from './noteInput';
 export * from './noteUpdate';
 export * from './openaiConversation';

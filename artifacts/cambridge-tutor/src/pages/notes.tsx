@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, Plus, Sparkles, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { SUBJECT_EMOJIS } from "@/lib/constants";
+import { CHAPTER_SUGGESTIONS, SUBJECT_EMOJIS } from "@/lib/constants";
 import { useStudent } from "@/contexts/StudentContext";
 import { format } from "date-fns";
 
@@ -33,6 +33,7 @@ export default function Notes() {
   const [newSubject, setNewSubject] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newTopic, setNewTopic] = useState("");
+  const [generationMode, setGenerationMode] = useState<"detailedNotes" | "chapterSummary">("detailedNotes");
 
   const handleCreate = () => {
     if (!newTitle || !newSubject || !level) return;
@@ -49,13 +50,14 @@ export default function Notes() {
   };
 
   const handleGenerate = () => {
-    if (!newSubject || !newTopic || !level) return;
+    if (!newSubject || !newTopic.trim() || !level) return;
     generateNote.mutate({
-      data: { subject: newSubject, level, topic: newTopic }
+      data: { subject: newSubject, level, topic: newTopic.trim(), mode: generationMode }
     }, {
       onSuccess: (note) => {
         setGenerateOpen(false);
         setNewTopic(""); setNewSubject("");
+        setGenerationMode("detailedNotes");
         queryClient.invalidateQueries({ queryKey: getListNotesQueryKey() });
         setLocation(`/notes/${note.id}`);
       }
@@ -86,7 +88,11 @@ export default function Notes() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Generate Cambridge Notes</DialogTitle>
-                <DialogDescription>AI will create detailed, syllabus-accurate notes for your {level} topic — including key definitions, worked examples, and exam tips.</DialogDescription>
+                <DialogDescription>
+                  {generationMode === "chapterSummary"
+                    ? `AI will create a focused, exam-ready summary of your ${level} chapter, with the key knowledge and recall points you need for revision.`
+                    : `AI will create detailed, syllabus-focused notes for your ${level} topic — including key definitions, worked examples, and exam tips.`}
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <Select value={newSubject} onValueChange={setNewSubject}>
@@ -99,13 +105,47 @@ export default function Notes() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Input placeholder="Topic (e.g. Photosynthesis, Quadratic Equations)" value={newTopic} onChange={e => setNewTopic(e.target.value)} />
+                <Select value={generationMode} onValueChange={value => setGenerationMode(value as "detailedNotes" | "chapterSummary")}>
+                  <SelectTrigger aria-label="Generation mode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="detailedNotes">Detailed study notes</SelectItem>
+                    <SelectItem value="chapterSummary">Chapter summary</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="space-y-2">
+                  <label htmlFor="note-topic" className="text-sm font-medium">
+                    {generationMode === "chapterSummary" ? "Chapter or syllabus topic" : "Topic"}
+                  </label>
+                  <Input
+                    id="note-topic"
+                    list="chapter-suggestions"
+                    placeholder={generationMode === "chapterSummary"
+                      ? "e.g. Cell Biology or 9700 Topic 2"
+                      : "e.g. Photosynthesis or Quadratic Equations"}
+                    value={newTopic}
+                    onChange={e => setNewTopic(e.target.value)}
+                  />
+                  {newSubject && (CHAPTER_SUGGESTIONS[newSubject]?.length ?? 0) > 0 && (
+                    <datalist id="chapter-suggestions">
+                      {CHAPTER_SUGGESTIONS[newSubject].map(suggestion => (
+                        <option key={suggestion} value={suggestion} />
+                      ))}
+                    </datalist>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Choose a suggestion as a starting point or enter any chapter/topic name.
+                  </p>
+                </div>
                 <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-                  ✦ Notes are generated to match the Cambridge {level} {newSubject || "syllabus"} — covering all examinable content for this topic.
+                  ✦ {generationMode === "chapterSummary"
+                    ? `Summaries are Cambridge ${level}-level and exam-focused. Exact coverage can vary by subject, syllabus code, and year.`
+                    : `Notes are generated for the Cambridge ${level} ${newSubject || "syllabus"} with key definitions, examples, and exam guidance.`}
                 </p>
               </div>
               <DialogFooter>
-                <Button onClick={handleGenerate} disabled={!newSubject || !newTopic || generateNote.isPending}>
+                <Button onClick={handleGenerate} disabled={!newSubject || !newTopic.trim() || generateNote.isPending}>
                   {generateNote.isPending ? "Generating..." : "Generate Notes"}
                 </Button>
               </DialogFooter>

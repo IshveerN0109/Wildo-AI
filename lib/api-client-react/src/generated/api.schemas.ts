@@ -126,10 +126,23 @@ export interface NoteUpdate {
   topic?: string;
 }
 
+/**
+ * Whether to generate full study notes or a concise chapter summary.
+ */
+export type NoteGenerateInputMode = typeof NoteGenerateInputMode[keyof typeof NoteGenerateInputMode];
+
+
+export const NoteGenerateInputMode = {
+  detailedNotes: 'detailedNotes',
+  chapterSummary: 'chapterSummary',
+} as const;
+
 export interface NoteGenerateInput {
   subject: string;
   level: string;
   topic: string;
+  /** Whether to generate full study notes or a concise chapter summary. */
+  mode?: NoteGenerateInputMode;
 }
 
 export interface FlashcardSet {

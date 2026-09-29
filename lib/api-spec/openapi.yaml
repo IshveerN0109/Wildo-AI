@@ -841,6 +841,10 @@ components:
           type: string
         topic:
           type: string
+        mode:
+          type: string
+          enum: [detailedNotes, chapterSummary]
+          description: Whether to generate full study notes or a concise chapter summary.
       required:
         - subject
         - level

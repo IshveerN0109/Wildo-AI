@@ -67,6 +67,8 @@ router.post("/notes/generate", async (req, res): Promise<void> => {
   }
 
   const { subject, level, topic } = parsed.data;
+  const mode = parsed.data.mode ?? "detailedNotes";
+  const isChapterSummary = mode === "chapterSummary";
 
   const completion = await openai.chat.completions.create({
     model: CHAT_MODEL,
@@ -74,7 +76,41 @@ router.post("/notes/generate", async (req, res): Promise<void> => {
     messages: [
       {
         role: "system",
-        content: `You are an expert Cambridge International Examinations (CAIE) study note writer. Your notes are used by students preparing for Cambridge ${level} exams and must be accurate to the official Cambridge syllabus.
+        content: isChapterSummary
+          ? `You are an expert Cambridge International Examinations (CAIE) study guide writer. Create a clear, high-value chapter summary for a student preparing for Cambridge ${level} ${subject}.
+
+The student supplied a chapter title or syllabus topic. Cover the examinable knowledge normally needed for that chapter, but do not pretend that a generic chapter title is an official Cambridge syllabus quotation or exact chapter number. Do not invent a syllabus code, paper, mark allocation, or mark-scheme wording. Keep the summary accurate, age-appropriate, and useful for revision.
+
+STRUCTURE THE SUMMARY EXACTLY LIKE THIS:
+
+# [Chapter] — [Subject] (Cambridge ${level})
+
+## Chapter at a glance
+Write a concise overview of the chapter and how it connects to the subject.
+
+## Essential knowledge
+Summarize every major concept a student should understand for this chapter. Use concise subheadings and bullet points.
+
+## Key terms, definitions, and formulae
+List the important terms and formulae. Define terms precisely, show units where relevant, and state conditions or limitations.
+
+## How to answer exam questions
+Explain the common Cambridge command words and the response structure, method, or working that earns credit for this chapter. Do not claim an exact mark allocation unless it is provided in the prompt.
+
+## Worked example or application
+Give at least one short, clearly explained example or application. For mathematics and sciences, show the method and units; for humanities and languages, model the reasoning or response structure.
+
+## Common misconceptions
+List likely misunderstandings and how to correct them.
+
+## Quick recall checklist
+Give a compact checklist of the most important points to remember.
+
+ACCURACY RULES:
+- Stay within Cambridge ${level} level and the supplied subject/chapter.
+- If the exact syllabus coverage could vary by Cambridge syllabus code or year, say so briefly rather than guessing.
+- This is a formative study summary, not an official Cambridge document.`
+          : `You are an expert Cambridge International Examinations (CAIE) study note writer. Your notes are used by students preparing for Cambridge ${level} exams and must be accurate to the official Cambridge syllabus.
 
 STRUCTURE EVERY NOTE LIKE THIS:
 
@@ -112,13 +148,17 @@ ACCURACY RULES:
       },
       {
         role: "user",
-        content: `Generate comprehensive Cambridge ${level} study notes for:\nSubject: ${subject}\nTopic: ${topic}\n\nCover everything a student needs to know about this topic for their Cambridge ${level} ${subject} exam. Be thorough, accurate, and exam-focused.`,
+        content: isChapterSummary
+          ? `Create a Cambridge ${level} chapter summary.\nSubject: ${subject}\nChapter or syllabus topic: ${topic}\n\nMake this a revision-friendly summary of the chapter, covering all major examinable ideas without claiming unsupported official syllabus details.`
+          : `Generate comprehensive Cambridge ${level} study notes for:\nSubject: ${subject}\nTopic: ${topic}\n\nCover everything a student needs to know about this topic for their Cambridge ${level} ${subject} exam. Be thorough, accurate, and exam-focused.`,
       },
     ],
   });
 
   const content = completion.choices[0]?.message?.content ?? "";
-  const title = `${topic} — ${subject} (${level})`;
+  const title = isChapterSummary
+    ? `${topic} — ${subject} Chapter Summary (${level})`
+    : `${topic} — ${subject} (${level})`;
 
   const [note] = await db
     .insert(notesTable)

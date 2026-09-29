@@ -5,9 +5,12 @@
  * Cambridge AI Tutor API
  * OpenAPI spec version: 0.1.0
  */
+import type { NoteGenerateInputMode } from './noteGenerateInputMode';
 
 export interface NoteGenerateInput {
   subject: string;
   level: string;
   topic: string;
+  /** Whether to generate full study notes or a concise chapter summary. */
+  mode?: NoteGenerateInputMode;
 }
