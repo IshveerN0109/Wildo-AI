@@ -60,3 +60,5 @@ export * from './studyStreakRewardStatus';
 export * from './studyStreakWeek';
 export * from './studySummary';
 export * from './subjectCount';
+export * from './uploadUrlRequest';
+export * from './uploadUrlResponse';

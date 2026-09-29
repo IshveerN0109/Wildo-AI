@@ -8,4 +8,6 @@
 
 export interface OpenaiMessageInput {
   content: string;
+  /** @maxItems 4 */
+  attachmentIds?: number[];
 }

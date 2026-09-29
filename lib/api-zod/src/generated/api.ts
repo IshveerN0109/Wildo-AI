@@ -93,6 +93,37 @@ export const GetStudentProfileResponse = zod.object({
 
 
 /**
+ * @summary Request a private student file upload URL
+ */
+
+
+
+
+
+export const RequestUploadUrlBody = zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+})
+
+
+
+
+
+
+export const RequestUploadUrlResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "objectPath": zod.string(),
+  "attachmentId": zod.number(),
+  "metadata": zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+})
+})
+
+
+/**
  * @summary Save the authenticated student's study profile
  */
 export const UpdateStudentProfileBody = zod.object({
@@ -201,8 +232,13 @@ export const SendOpenaiMessageParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const sendOpenaiMessageBodyAttachmentIdsMax = 4;
+
+
+
 export const SendOpenaiMessageBody = zod.object({
-  "content": zod.string()
+  "content": zod.string(),
+  "attachmentIds": zod.array(zod.number()).max(sendOpenaiMessageBodyAttachmentIdsMax).optional()
 })
 
 export const SendOpenaiMessageResponse = zod.unknown()

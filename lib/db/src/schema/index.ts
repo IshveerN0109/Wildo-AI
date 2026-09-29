@@ -7,3 +7,4 @@ export * from "./streaks";
 export * from "./studyActivityDays";
 export * from "./quizzes";
 export * from "./studentProfiles";
+export * from "./studentAttachments";

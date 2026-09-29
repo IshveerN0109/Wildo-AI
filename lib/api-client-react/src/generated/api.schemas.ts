@@ -75,6 +75,22 @@ export interface StudentProfileUpdate {
   level: StudentProfileUpdateLevel;
 }
 
+export interface UploadUrlRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  /** @minLength 1 */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+  attachmentId: number;
+  metadata: UploadUrlRequest;
+}
+
 export interface ErrorEnvelope {
   error: string;
 }
@@ -120,6 +136,8 @@ export interface OpenaiConversationWithMessages {
 
 export interface OpenaiMessageInput {
   content: string;
+  /** @maxItems 4 */
+  attachmentIds?: number[];
 }
 
 export interface OpenaiVoiceMessageInput {

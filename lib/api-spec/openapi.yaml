@@ -26,6 +26,8 @@ tags:
     description: Timed quiz sessions
   - name: oral-practice
     description: Cambridge-style Oral English practice
+  - name: Storage
+    description: Private student file upload and serving endpoints.
 paths:
   /auth/user:
     get:
@@ -128,6 +130,33 @@ paths:
                 $ref: "#/components/schemas/StudentProfile"
         "401":
           description: Authentication required
+
+  /storage/uploads/request-url:
+    post:
+      tags: [Storage]
+      operationId: requestUploadUrl
+      summary: Request a private student file upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL and saved attachment metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
+          description: Invalid file metadata
+        "401":
+          description: Authentication required
+        "413":
+          description: File is too large
+        "415":
+          description: File type is not supported
     put:
       tags: [student]
       operationId: updateStudentProfile
@@ -703,6 +732,32 @@ components:
         level:
           type: ["string", "null"]
           enum: [O Level, A Level, null]
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        size:
+          type: integer
+          minimum: 1
+        contentType:
+          type: string
+          minLength: 1
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath, attachmentId, metadata]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+        objectPath:
+          type: string
+        attachmentId:
+          type: integer
+        metadata:
+          $ref: "#/components/schemas/UploadUrlRequest"
     ErrorEnvelope:
       type: object
       required: [error]
@@ -798,6 +853,11 @@ components:
       properties:
         content:
           type: string
+        attachmentIds:
+          type: array
+          maxItems: 4
+          items:
+            type: integer
       required:
         - content
 
