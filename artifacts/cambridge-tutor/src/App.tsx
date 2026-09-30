@@ -21,6 +21,7 @@ import Terms from "@/pages/terms";
 import Quiz from "@/pages/quiz";
 import OralPractice from "@/pages/oral-practice";
 import Profile from "@/pages/profile";
+import Plans from "@/pages/plans";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -73,6 +74,7 @@ function Router() {
         <Route path="/quiz" component={Quiz} />
         <Route path="/oral-practice" component={OralPractice} />
         <Route path="/profile" component={Profile} />
+        <Route path="/plans" component={Plans} />
         <Route path="/terms" component={Terms} />
         <Route component={NotFound} />
       </Switch>

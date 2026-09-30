@@ -660,6 +660,45 @@ paths:
               schema:
                 $ref: "#/components/schemas/SubscriptionUsage"
 
+  /subscription/plans:
+    get:
+      operationId: listSubscriptionPlans
+      tags: [subscription]
+      summary: List the plans a student can choose between
+      responses:
+        "200":
+          description: Available plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubscriptionPlan"
+
+  /subscription/select-plan:
+    post:
+      operationId: selectSubscriptionPlan
+      tags: [subscription]
+      summary: Switch the current student onto a different plan
+      description: >-
+        Activates immediately. No payment is collected yet — see
+        SubscriptionPlan.priceCents.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SelectPlanBody"
+      responses:
+        "200":
+          description: Updated subscription usage on the newly selected plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionUsage"
+        "400":
+          description: Unknown plan id
+
 components:
   parameters:
     AuthorizationSessionHeader:
@@ -1516,3 +1555,36 @@ components:
         - currentPeriodStart
         - currentPeriodEnd
         - usage
+
+    SubscriptionPlanLimit:
+      type: object
+      properties:
+        feature:
+          $ref: "#/components/schemas/SubscriptionFeature"
+        limit:
+          type: integer
+          description: Units included per billing period for this feature on this plan.
+      required: [feature, limit]
+
+    SubscriptionPlan:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        priceCents:
+          type: integer
+          description: Display-only monthly price in cents (0 = free). Nothing is charged yet.
+        limits:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionPlanLimit"
+      required: [id, name, priceCents, limits]
+
+    SelectPlanBody:
+      type: object
+      properties:
+        planId:
+          type: string
+      required: [planId]

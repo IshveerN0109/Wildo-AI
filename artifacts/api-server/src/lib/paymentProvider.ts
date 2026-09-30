@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, subscriptionsTable, type Subscription } from "@workspace/db";
 
-import { FREE_PLAN } from "./subscriptionPlans";
+import { FREE_PLAN, getPlan } from "./subscriptionPlans";
 
 function startOfMonth(from: Date): Date {
   return new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1));
@@ -20,6 +20,18 @@ export interface PaymentProvider {
    * back whatever period/status the payment gateway reports.
    */
   ensureActiveSubscription(userId: string): Promise<Subscription>;
+  /**
+   * Switches the student onto `planId`, effective immediately, within
+   * their current billing period (usage already counted this period
+   * carries over — only the limit changes). Caller must have already
+   * validated `planId` against subscriptionPlans.isKnownPlanId.
+   *
+   * A real provider would instead kick off a checkout/portal flow for a
+   * paid plan and only assign it once payment succeeds (e.g. via a
+   * webhook) — TestPaymentProvider can assign it directly because nothing
+   * is ever charged.
+   */
+  selectPlan(userId: string, planId: string): Promise<Subscription>;
 }
 
 /**
@@ -68,6 +80,19 @@ class TestPaymentProvider implements PaymentProvider {
           updatedAt: now,
         },
       })
+      .returning();
+
+    return subscription;
+  }
+
+  async selectPlan(userId: string, planId: string): Promise<Subscription> {
+    await this.ensureActiveSubscription(userId);
+    const plan = getPlan(planId);
+
+    const [subscription] = await db
+      .update(subscriptionsTable)
+      .set({ planId: plan.id, updatedAt: new Date() })
+      .where(eq(subscriptionsTable.userId, userId))
       .returning();
 
     return subscription;

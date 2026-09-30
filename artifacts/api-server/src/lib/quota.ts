@@ -2,7 +2,14 @@ import { and, eq, sql } from "drizzle-orm";
 import { db, featureUsageTable } from "@workspace/db";
 
 import { paymentProvider } from "./paymentProvider";
-import { FEATURE_LABELS, getPlan, type Feature } from "./subscriptionPlans";
+import { FEATURE_LABELS, getPlan, isKnownPlanId, type Feature } from "./subscriptionPlans";
+
+export class UnknownPlanError extends Error {
+  constructor(public readonly planId: string) {
+    super(`"${planId}" is not a known plan.`);
+    this.name = "UnknownPlanError";
+  }
+}
 
 export class QuotaExceededError extends Error {
   constructor(
@@ -98,4 +105,13 @@ export async function getUsageSummary(userId: string): Promise<UsageSummary> {
     currentPeriodEnd: subscription.currentPeriodEnd,
     usage,
   };
+}
+
+/** Switches the student onto `planId` immediately, then returns their updated usage summary. */
+export async function selectPlan(userId: string, planId: string): Promise<UsageSummary> {
+  if (!isKnownPlanId(planId)) {
+    throw new UnknownPlanError(planId);
+  }
+  await paymentProvider.selectPlan(userId, planId);
+  return getUsageSummary(userId);
 }

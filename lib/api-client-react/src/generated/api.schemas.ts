@@ -509,6 +509,24 @@ export interface SubscriptionUsage {
   usage: SubscriptionFeatureUsage[];
 }
 
+export interface SubscriptionPlanLimit {
+  feature: SubscriptionFeature;
+  /** Units included per billing period for this feature on this plan. */
+  limit: number;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  /** Display-only monthly price in cents (0 = free). Nothing is charged yet. */
+  priceCents: number;
+  limits: SubscriptionPlanLimit[];
+}
+
+export interface SelectPlanBody {
+  planId: string;
+}
+
 /**
  * Opaque session token — `Bearer <sid>`.
  */

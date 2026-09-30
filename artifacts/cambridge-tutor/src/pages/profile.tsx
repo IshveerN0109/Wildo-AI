@@ -5,18 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
+import { SUBSCRIPTION_FEATURE_LABELS } from "@/lib/constants";
 
 function percent(value: number, target: number) {
   return Math.min(100, Math.round((value / Math.max(target, 1)) * 100));
 }
-
-const FEATURE_LABELS: Record<string, string> = {
-  tutorMessage: "AI Tutor questions",
-  noteGeneration: "AI note generations",
-  quizGeneration: "AI quiz generations",
-  flashcardGeneration: "AI flashcard generations",
-  oralPractice: "Oral practice evaluations",
-};
 
 export default function Profile() {
   const { user, isLoading: authLoading, isAuthenticated, login } = useAuth();
@@ -169,7 +162,7 @@ export default function Profile() {
                 subscription?.usage.map((u) => (
                   <div key={u.feature}>
                     <div className="flex items-center justify-between gap-2 text-xs">
-                      <span className="font-medium text-foreground">{FEATURE_LABELS[u.feature] ?? u.feature}</span>
+                      <span className="font-medium text-foreground">{SUBSCRIPTION_FEATURE_LABELS[u.feature] ?? u.feature}</span>
                       <span className="text-muted-foreground">{u.used}/{u.limit}</span>
                     </div>
                     <Progress
@@ -180,6 +173,11 @@ export default function Profile() {
                 ))
               )}
             </div>
+            <Link href="/plans">
+              <Button variant="outline" className="mt-5 w-full">
+                Compare plans
+              </Button>
+            </Link>
           </section>
 
           <section className={`rounded-2xl border p-5 shadow-sm md:p-6 ${streak?.nextMonthFreeEligible ? "border-emerald-500/25 bg-emerald-500/5" : "border-primary/15 bg-accent/35"}`} data-testid="card-reward">

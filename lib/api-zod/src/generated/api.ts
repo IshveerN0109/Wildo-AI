@@ -686,3 +686,41 @@ export const GetSubscriptionUsageResponse = zod.object({
 })
 
 
+/**
+ * @summary List the plans a student can choose between
+ */
+export const ListSubscriptionPlansResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "priceCents": zod.number().describe('Display-only monthly price in cents (0 = free). Nothing is charged yet.'),
+  "limits": zod.array(zod.object({
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
+  "limit": zod.number().describe('Units included per billing period for this feature on this plan.')
+}))
+})
+export const ListSubscriptionPlansResponse = zod.array(ListSubscriptionPlansResponseItem)
+
+
+/**
+ * Activates immediately. No payment is collected yet — see SubscriptionPlan.priceCents.
+ * @summary Switch the current student onto a different plan
+ */
+export const SelectSubscriptionPlanBody = zod.object({
+  "planId": zod.string()
+})
+
+export const SelectSubscriptionPlanResponse = zod.object({
+  "planId": zod.string(),
+  "planName": zod.string(),
+  "status": zod.enum(['active', 'canceled', 'past_due', 'expired']),
+  "currentPeriodStart": zod.coerce.date(),
+  "currentPeriodEnd": zod.coerce.date(),
+  "usage": zod.array(zod.object({
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
+  "used": zod.number().describe('Units consumed so far in the current billing period.'),
+  "limit": zod.number().describe('Units included in the student\'s plan for this feature, per billing period.'),
+  "remaining": zod.number().describe('Units left before the student hits their limit for this feature.')
+}))
+})
+
+
