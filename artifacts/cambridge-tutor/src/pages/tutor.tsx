@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Send, Plus, Brain, ShieldCheck, ShieldAlert, Loader2 } from "lucide-react";
 import { SUBJECT_EMOJIS } from "@/lib/constants";
 import { useStudent } from "@/contexts/StudentContext";
+import { MarkdownContent } from "@/components/markdown-content";
+import { useToast } from "@/hooks/use-toast";
 
 interface Verification {
   syllabusRef: string | null;
@@ -55,6 +57,7 @@ function VerificationBadge({ v, loading }: { v: Verification | null; loading: bo
 export default function Tutor() {
   const queryClient = useQueryClient();
   const { level, subjects } = useStudent();
+  const { toast } = useToast();
 
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [input, setInput] = useState("");
@@ -121,6 +124,22 @@ export default function Tutor() {
         body: JSON.stringify({ content: messageContent })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null) as { error?: string } | null;
+        // The optimistic user message above was never persisted (the quota
+        // check runs before the message insert), so refetching drops it.
+        queryClient.invalidateQueries({ queryKey: getListOpenaiMessagesQueryKey(activeConversationId) });
+        setIsStreaming(false);
+        setStreamedResponse("");
+        setVerifying(false);
+        toast({
+          title: response.status === 402 ? "Monthly limit reached" : "Couldn't send message",
+          description: errorBody?.error ?? "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (!response.body) throw new Error("No body");
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -151,14 +170,6 @@ export default function Tutor() {
       setStreamedResponse("");
       setVerifying(false);
     }
-  };
-
-  const formatMessage = (content: string) => {
-    return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-xs font-mono">$1</code>')
-      .replace(/\n/g, '<br/>');
   };
 
   return (
@@ -260,10 +271,14 @@ export default function Tutor() {
                         ? 'bg-primary text-primary-foreground rounded-br-sm'
                         : 'bg-muted rounded-bl-sm'
                     }`}>
-                      <p
-                        className="text-sm leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
-                      />
+                      {msg.role === 'assistant' ? (
+                        <MarkdownContent
+                          content={msg.content}
+                          className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                        />
+                      ) : (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -273,9 +288,9 @@ export default function Tutor() {
                       🎓
                     </div>
                     <div className="max-w-[78%] rounded-2xl rounded-bl-sm px-4 py-3 bg-muted">
-                      <p
-                        className="text-sm leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: formatMessage(streamedResponse) }}
+                      <MarkdownContent
+                        content={streamedResponse}
+                        className="inline [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&>*:last-child]:inline"
                       />
                       <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-0.5 rounded" />
                       <VerificationBadge v={verification} loading={verifying} />

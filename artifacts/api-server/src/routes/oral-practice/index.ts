@@ -6,8 +6,11 @@ import {
 } from "@workspace/integrations-openai-ai-server/audio";
 import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
 import { EvaluateOralPracticeBody, EvaluateOralPracticeResponse } from "@workspace/api-zod";
+import { requireAuth } from "../../lib/require-auth";
+import { requireQuota } from "../../lib/require-quota";
 
 const router: IRouter = Router();
+router.use(requireAuth);
 
 type OralCriterionConfig = {
   id: string;
@@ -292,7 +295,7 @@ function normalizeScore(
   };
 }
 
-router.post("/oral-practice/evaluate", async (req, res): Promise<void> => {
+router.post("/oral-practice/evaluate", requireQuota("oralPractice"), async (req, res): Promise<void> => {
   const parsedBody = EvaluateOralPracticeBody.safeParse(req.body);
   if (!parsedBody.success) {
     res.status(400).json({ error: parsedBody.error.message });

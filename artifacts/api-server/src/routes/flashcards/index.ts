@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { db, flashcardSetsTable, flashcardsTable } from "@workspace/db";
 import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
 import { requireAuth } from "../../lib/require-auth";
+import { requireQuota } from "../../lib/require-quota";
 import {
   CreateFlashcardSetBody,
   GetFlashcardSetParams,
@@ -54,7 +55,7 @@ router.post("/flashcard-sets", async (req, res): Promise<void> => {
   res.status(201).json({ ...set, cardCount: 0 });
 });
 
-router.post("/flashcard-sets/generate", async (req, res): Promise<void> => {
+router.post("/flashcard-sets/generate", requireQuota("flashcardGeneration"), async (req, res): Promise<void> => {
   const parsed = GenerateFlashcardSetBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

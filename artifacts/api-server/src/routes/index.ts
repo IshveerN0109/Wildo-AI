@@ -10,6 +10,7 @@ import quizRouter from "./quiz";
 import oralPracticeRouter from "./oral-practice";
 import studentProfileRouter from "./student-profile";
 import storageRouter from "./storage";
+import subscriptionRouter from "./subscription";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(quizRouter);
 router.use(oralPracticeRouter);
 router.use(studentProfileRouter);
 router.use(storageRouter);
+router.use(subscriptionRouter);
 
 export default router;

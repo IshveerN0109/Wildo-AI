@@ -1,17 +1,27 @@
 import { Link } from "wouter";
-import { CalendarDays, Flame, Gift, LogIn, MessageCircle, ShieldCheck, Star, User } from "lucide-react";
-import { useGetStreak } from "@workspace/api-client-react";
+import { CalendarDays, CreditCard, Flame, Gift, LogIn, MessageCircle, ShieldCheck, Star, User } from "lucide-react";
+import { useGetStreak, useGetSubscriptionUsage } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
 
 function percent(value: number, target: number) {
   return Math.min(100, Math.round((value / Math.max(target, 1)) * 100));
 }
 
+const FEATURE_LABELS: Record<string, string> = {
+  tutorMessage: "AI Tutor questions",
+  noteGeneration: "AI note generations",
+  quizGeneration: "AI quiz generations",
+  flashcardGeneration: "AI flashcard generations",
+  oralPractice: "Oral practice evaluations",
+};
+
 export default function Profile() {
   const { user, isLoading: authLoading, isAuthenticated, login } = useAuth();
   const { data: streak, isLoading: streakLoading } = useGetStreak();
+  const { data: subscription, isLoading: subscriptionLoading } = useGetSubscriptionUsage();
 
   const displayName = user
     ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "Student"
@@ -137,6 +147,41 @@ export default function Profile() {
         </section>
 
         <div className="space-y-5">
+          <section className="rounded-2xl border bg-card p-5 shadow-sm md:p-6" data-testid="card-subscription">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-primary" />
+                <h2 className="font-bold">{subscription?.planName ?? "Plan"} usage</h2>
+              </div>
+              {subscription && (
+                <span className="text-xs text-muted-foreground">
+                  Resets {format(new Date(subscription.currentPeriodEnd), "MMM d")}
+                </span>
+              )}
+            </div>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Free while Wildo is in testing — no card required. Limits reset every month.
+            </p>
+            <div className="mt-4 space-y-3.5">
+              {subscriptionLoading ? (
+                <div className="h-24 animate-pulse rounded-xl bg-muted" />
+              ) : (
+                subscription?.usage.map((u) => (
+                  <div key={u.feature}>
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className="font-medium text-foreground">{FEATURE_LABELS[u.feature] ?? u.feature}</span>
+                      <span className="text-muted-foreground">{u.used}/{u.limit}</span>
+                    </div>
+                    <Progress
+                      value={percent(u.used, u.limit)}
+                      className={`mt-1.5 h-1.5 ${u.remaining === 0 ? "[&>div]:bg-destructive" : ""}`}
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
           <section className={`rounded-2xl border p-5 shadow-sm md:p-6 ${streak?.nextMonthFreeEligible ? "border-emerald-500/25 bg-emerald-500/5" : "border-primary/15 bg-accent/35"}`} data-testid="card-reward">
             <div className="flex items-start gap-3">
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${streak?.nextMonthFreeEligible ? "bg-emerald-500/15 text-emerald-600" : "bg-primary/10 text-primary"}`}>

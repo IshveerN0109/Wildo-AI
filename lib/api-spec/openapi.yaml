@@ -28,6 +28,8 @@ tags:
     description: Cambridge-style Oral English practice
   - name: Storage
     description: Private student file upload and serving endpoints.
+  - name: subscription
+    description: Student subscription plan and monthly feature usage.
 paths:
   /auth/user:
     get:
@@ -644,6 +646,19 @@ paths:
           description: No speech detected
         "500":
           description: Audio evaluation failed
+
+  /subscription:
+    get:
+      operationId: getSubscriptionUsage
+      tags: [subscription]
+      summary: Get the current student's subscription plan and this month's feature usage
+      responses:
+        "200":
+          description: Subscription plan and per-feature usage for the current billing period
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionUsage"
 
 components:
   parameters:
@@ -1452,3 +1467,52 @@ components:
         - inputFormat
         - score
         - verification
+
+    SubscriptionFeature:
+      type: string
+      description: A quota-metered AI feature.
+      enum: [tutorMessage, noteGeneration, quizGeneration, flashcardGeneration, oralPractice]
+
+    SubscriptionFeatureUsage:
+      type: object
+      properties:
+        feature:
+          $ref: "#/components/schemas/SubscriptionFeature"
+        used:
+          type: integer
+          description: Units consumed so far in the current billing period.
+        limit:
+          type: integer
+          description: Units included in the student's plan for this feature, per billing period.
+        remaining:
+          type: integer
+          description: Units left before the student hits their limit for this feature.
+      required: [feature, used, limit, remaining]
+
+    SubscriptionUsage:
+      type: object
+      properties:
+        planId:
+          type: string
+        planName:
+          type: string
+        status:
+          type: string
+          enum: [active, canceled, past_due, expired]
+        currentPeriodStart:
+          type: string
+          format: date-time
+        currentPeriodEnd:
+          type: string
+          format: date-time
+        usage:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionFeatureUsage"
+      required:
+        - planId
+        - planName
+        - status
+        - currentPeriodStart
+        - currentPeriodEnd
+        - usage

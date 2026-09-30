@@ -4,6 +4,7 @@ import { db, conversations, messages } from "@workspace/db";
 import { recordQuestionForUser } from "../streaks";
 import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
 import { requireAuth } from "../../lib/require-auth";
+import { requireQuota } from "../../lib/require-quota";
 import {
   CreateOpenaiConversationBody,
   GetOpenaiConversationParams,
@@ -333,7 +334,7 @@ router.get("/openai/conversations/:id/messages", async (req, res): Promise<void>
   res.json(msgs);
 });
 
-router.post("/openai/conversations/:id/messages", async (req, res): Promise<void> => {
+router.post("/openai/conversations/:id/messages", requireQuota("tutorMessage"), async (req, res): Promise<void> => {
   const params = SendOpenaiMessageParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid id" });
@@ -419,7 +420,7 @@ router.post("/openai/conversations/:id/messages", async (req, res): Promise<void
   res.end();
 });
 
-router.post("/openai/revision-stream", async (req, res): Promise<void> => {
+router.post("/openai/revision-stream", requireQuota("tutorMessage"), async (req, res): Promise<void> => {
   const { messages: msgs, system, subject, level } = req.body as {
     messages: { role: string; content: string }[];
     system?: string;

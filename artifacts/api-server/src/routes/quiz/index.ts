@@ -3,10 +3,11 @@ import { db, quizSessions } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
 import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
 import { requireAuth } from "../../lib/require-auth";
+import { requireQuota } from "../../lib/require-quota";
 
 const router: IRouter = Router();
 router.use(requireAuth);
-router.post("/quiz/generate", async (req, res): Promise<void> => {
+router.post("/quiz/generate", requireQuota("quizGeneration"), async (req, res): Promise<void> => {
   const { subject, level, topic, difficulty } = req.body as {
     subject: string;
     level: string;

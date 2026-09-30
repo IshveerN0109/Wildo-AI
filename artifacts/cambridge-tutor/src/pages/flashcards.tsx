@@ -5,11 +5,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Sparkles, ChevronRight, Plus, X, Layers } from "lucide-react";
 import { SUBJECT_EMOJIS, CHAPTER_SUGGESTIONS } from "@/lib/constants";
 import { useStudent } from "@/contexts/StudentContext";
+import { useToast } from "@/hooks/use-toast";
+import { getQuotaErrorMessage } from "@/lib/quota-error";
 
 export default function Flashcards() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { level, subjects } = useStudent();
+  const { toast } = useToast();
 
   const { data: sets, isLoading } = useListFlashcardSets();
   const generateSet = useGenerateFlashcardSet();
@@ -44,6 +47,14 @@ export default function Flashcards() {
           setPickingSubject(false);
           queryClient.invalidateQueries({ queryKey: getListFlashcardSetsQueryKey() });
           setLocation(`/flashcards/${newSet.id}`);
+        },
+        onError: (err) => {
+          const quotaMessage = getQuotaErrorMessage(err);
+          toast({
+            title: quotaMessage ? "Monthly limit reached" : "Couldn't generate flashcards",
+            description: quotaMessage ?? "Something went wrong. Please try again.",
+            variant: "destructive",
+          });
         },
       }
     );

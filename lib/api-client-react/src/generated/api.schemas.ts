@@ -467,6 +467,49 @@ export interface OralPracticeEvaluation {
 }
 
 /**
+ * A quota-metered AI feature.
+ */
+export type SubscriptionFeature = typeof SubscriptionFeature[keyof typeof SubscriptionFeature];
+
+
+export const SubscriptionFeature = {
+  tutorMessage: 'tutorMessage',
+  noteGeneration: 'noteGeneration',
+  quizGeneration: 'quizGeneration',
+  flashcardGeneration: 'flashcardGeneration',
+  oralPractice: 'oralPractice',
+} as const;
+
+export interface SubscriptionFeatureUsage {
+  feature: SubscriptionFeature;
+  /** Units consumed so far in the current billing period. */
+  used: number;
+  /** Units included in the student's plan for this feature, per billing period. */
+  limit: number;
+  /** Units left before the student hits their limit for this feature. */
+  remaining: number;
+}
+
+export type SubscriptionUsageStatus = typeof SubscriptionUsageStatus[keyof typeof SubscriptionUsageStatus];
+
+
+export const SubscriptionUsageStatus = {
+  active: 'active',
+  canceled: 'canceled',
+  past_due: 'past_due',
+  expired: 'expired',
+} as const;
+
+export interface SubscriptionUsage {
+  planId: string;
+  planName: string;
+  status: SubscriptionUsageStatus;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  usage: SubscriptionFeatureUsage[];
+}
+
+/**
  * Opaque session token — `Bearer <sid>`.
  */
 export type AuthorizationSessionHeaderParameter = string;

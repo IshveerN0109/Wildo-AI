@@ -11,11 +11,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { CHAPTER_SUGGESTIONS, SUBJECT_EMOJIS } from "@/lib/constants";
 import { useStudent } from "@/contexts/StudentContext";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { getQuotaErrorMessage } from "@/lib/quota-error";
 
 export default function Notes() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { level, subjects } = useStudent();
+  const { toast } = useToast();
 
   const [subjectFilter, setSubjectFilter] = useState<string>("");
   const [search, setSearch] = useState("");
@@ -60,6 +63,14 @@ export default function Notes() {
         setGenerationMode("detailedNotes");
         queryClient.invalidateQueries({ queryKey: getListNotesQueryKey() });
         setLocation(`/notes/${note.id}`);
+      },
+      onError: (err) => {
+        const quotaMessage = getQuotaErrorMessage(err);
+        toast({
+          title: quotaMessage ? "Monthly limit reached" : "Couldn't generate notes",
+          description: quotaMessage ?? "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
       }
     });
   };

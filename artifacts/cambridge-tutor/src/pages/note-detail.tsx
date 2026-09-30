@@ -11,7 +11,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save, Trash2, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Save, Trash2, Loader2, Eye, Pencil } from "lucide-react";
 import { Link } from "wouter";
 import {
   AlertDialog,
@@ -25,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { MarkdownContent } from "@/components/markdown-content";
 
 export default function NoteDetail() {
   const { id } = useParams<{ id: string }>();
@@ -86,8 +88,8 @@ export default function NoteDetail() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col space-y-4 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between shrink-0">
+    <div className="flex flex-col gap-4 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/notes">
             <Button variant="ghost" size="icon">
@@ -130,21 +132,38 @@ export default function NoteDetail() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-        <Input 
-          value={title} 
-          onChange={e => setTitle(e.target.value)} 
+      <div className="flex flex-col gap-4">
+        <Input
+          value={title}
+          onChange={e => setTitle(e.target.value)}
           className="text-2xl font-bold font-serif px-4 py-6 border-none focus-visible:ring-0 shadow-none bg-transparent"
           placeholder="Note Title"
         />
-        <div className="flex-1 rounded-lg border bg-card overflow-hidden">
-          <Textarea 
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            className="w-full h-full p-6 border-none focus-visible:ring-0 resize-none font-mono text-sm leading-relaxed"
-            placeholder="Start writing..."
-          />
-        </div>
+        <Tabs defaultValue="preview" className="w-full">
+          <TabsList className="self-start">
+            <TabsTrigger value="preview" className="gap-1.5">
+              <Eye className="w-3.5 h-3.5" /> Preview
+            </TabsTrigger>
+            <TabsTrigger value="edit" className="gap-1.5">
+              <Pencil className="w-3.5 h-3.5" /> Edit
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="preview" className="min-h-[50dvh] rounded-lg border bg-card p-6">
+            {content.trim() ? (
+              <MarkdownContent content={content} />
+            ) : (
+              <p className="text-sm text-muted-foreground">Nothing to preview yet — switch to Edit to start writing.</p>
+            )}
+          </TabsContent>
+          <TabsContent value="edit" className="min-h-[50dvh] rounded-lg border bg-card overflow-hidden">
+            <Textarea
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              className="w-full min-h-[50dvh] p-6 border-none focus-visible:ring-0 resize-none font-mono text-sm leading-relaxed"
+              placeholder="Start writing..."
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

@@ -4,6 +4,8 @@ import type { QuizQuestion } from "@workspace/api-client-react";
 import { useStudent } from "@/contexts/StudentContext";
 import { CHAPTER_SUGGESTIONS, SUBJECT_EMOJIS } from "@/lib/constants";
 import { ChevronRight, Trophy, RotateCcw, Clock, Zap, Target, BarChart2, CheckCircle2, XCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { getQuotaErrorMessage } from "@/lib/quota-error";
 
 type Difficulty = "easy" | "medium" | "hard";
 type Phase = "setup" | "loading" | "quiz" | "results";
@@ -16,6 +18,7 @@ const DIFFICULTY_CONFIG = {
 
 export default function Quiz() {
   const { level, subjects } = useStudent();
+  const { toast } = useToast();
 
   // ── Setup state ──────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>("setup");
@@ -112,7 +115,15 @@ export default function Quiz() {
           setScores([]);
           setPhase("quiz");
         },
-        onError: () => setPhase("setup"),
+        onError: (err) => {
+          setPhase("setup");
+          const quotaMessage = getQuotaErrorMessage(err);
+          toast({
+            title: quotaMessage ? "Monthly limit reached" : "Couldn't generate quiz",
+            description: quotaMessage ?? "Something went wrong. Please try again.",
+            variant: "destructive",
+          });
+        },
       }
     );
   }

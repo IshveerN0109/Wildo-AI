@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStudent } from "@/contexts/StudentContext";
+import { getQuotaErrorMessage } from "@/lib/quota-error";
 import {
   AlertTriangle,
   ArrowRight,
@@ -159,7 +160,8 @@ export default function OralPractice() {
             setState("evaluated");
           },
           onError: (error) => {
-            setErrorMessage(error instanceof Error ? error.message : "The examiner could not evaluate this recording.");
+            const quotaMessage = getQuotaErrorMessage(error);
+            setErrorMessage(quotaMessage ?? (error instanceof Error ? error.message : "The examiner could not evaluate this recording."));
             setState("mic-error");
           },
         },

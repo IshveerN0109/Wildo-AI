@@ -668,3 +668,21 @@ export const EvaluateOralPracticeResponse = zod.object({
 })
 
 
+/**
+ * @summary Get the current student's subscription plan and this month's feature usage
+ */
+export const GetSubscriptionUsageResponse = zod.object({
+  "planId": zod.string(),
+  "planName": zod.string(),
+  "status": zod.enum(['active', 'canceled', 'past_due', 'expired']),
+  "currentPeriodStart": zod.coerce.date(),
+  "currentPeriodEnd": zod.coerce.date(),
+  "usage": zod.array(zod.object({
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
+  "used": zod.number().describe('Units consumed so far in the current billing period.'),
+  "limit": zod.number().describe('Units included in the student\'s plan for this feature, per billing period.'),
+  "remaining": zod.number().describe('Units left before the student hits their limit for this feature.')
+}))
+})
+
+

@@ -156,6 +156,26 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif tracking-tight;
   }
+
+  /* Tailwind v4 no longer sets cursor: pointer on interactive elements by
+     default (unlike v3). Restore it so every clickable control signals it's
+     clickable, and show not-allowed instead while disabled. */
+  button,
+  [role="button"],
+  a[href],
+  select,
+  summary,
+  label[for],
+  input[type="checkbox"],
+  input[type="radio"] {
+    cursor: pointer;
+  }
+
+  :disabled,
+  [aria-disabled="true"],
+  [data-disabled="true"] {
+    cursor: not-allowed;
+  }
 }
 
 @layer utilities {

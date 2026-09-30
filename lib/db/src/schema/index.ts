@@ -8,3 +8,5 @@ export * from "./studyActivityDays";
 export * from "./quizzes";
 export * from "./studentProfiles";
 export * from "./studentAttachments";
+export * from "./subscriptions";
+export * from "./featureUsage";

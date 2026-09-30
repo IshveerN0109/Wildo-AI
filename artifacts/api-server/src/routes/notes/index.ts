@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { db, notesTable } from "@workspace/db";
 import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
 import { requireAuth } from "../../lib/require-auth";
+import { requireQuota } from "../../lib/require-quota";
 import {
   ListNotesQueryParams,
   CreateNoteBody,
@@ -59,7 +60,7 @@ router.post("/notes", async (req, res): Promise<void> => {
   res.status(201).json(note);
 });
 
-router.post("/notes/generate", async (req, res): Promise<void> => {
+router.post("/notes/generate", requireQuota("noteGeneration"), async (req, res): Promise<void> => {
   const parsed = GenerateNoteBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

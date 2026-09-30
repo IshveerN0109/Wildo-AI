@@ -53,6 +53,7 @@ import type {
   StudentProfileUpdate,
   StudyStreak,
   StudySummary,
+  SubscriptionUsage,
   UploadUrlRequest,
   UploadUrlResponse
 } from './api.schemas';
@@ -2676,4 +2677,81 @@ export const useEvaluateOralPractice = <TError = ErrorType<void>,
       > => {
       return useMutation(getEvaluateOralPracticeMutationOptions(options));
     }
+
+export const getGetSubscriptionUsageUrl = () => {
+
+
+
+
+  return `/api/subscription`
+}
+
+/**
+ * @summary Get the current student's subscription plan and this month's feature usage
+ */
+export const getSubscriptionUsage = async ( options?: RequestInit): Promise<SubscriptionUsage> => {
+
+  return customFetch<SubscriptionUsage>(getGetSubscriptionUsageUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSubscriptionUsageQueryKey = () => {
+    return [
+    `/api/subscription`
+    ] as const;
+    }
+
+
+export const getGetSubscriptionUsageQueryOptions = <TData = Awaited<ReturnType<typeof getSubscriptionUsage>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionUsage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSubscriptionUsageQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptionUsage>>> = ({ signal }) => getSubscriptionUsage({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionUsage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSubscriptionUsageQueryResult = NonNullable<Awaited<ReturnType<typeof getSubscriptionUsage>>>
+export type GetSubscriptionUsageQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the current student's subscription plan and this month's feature usage
+ */
+
+export function useGetSubscriptionUsage<TData = Awaited<ReturnType<typeof getSubscriptionUsage>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionUsage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSubscriptionUsageQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
