@@ -22,12 +22,14 @@ export interface Plan {
   limits: Record<Feature, number>;
 }
 
-// Every student is auto-enrolled on this plan while there is no real payment
-// provider wired up (see paymentProvider.ts). Add paid plans here once
-// billing goes live — the quota service only needs a plan's `limits`.
-export const FREE_TEST_PLAN: Plan = {
-  id: "free_test",
-  name: "Free (Test)",
+// The one real plan students are enrolled on today. Every student is
+// auto-enrolled on it with no payment step, since there's no payment
+// provider wired up yet (see paymentProvider.ts) — but the limits below are
+// enforced exactly as they will be in production. Once billing goes live,
+// add paid plans here and have the payment provider assign them instead.
+export const FREE_PLAN: Plan = {
+  id: "free",
+  name: "Free",
   limits: {
     tutorMessage: 50,
     noteGeneration: 20,
@@ -38,9 +40,9 @@ export const FREE_TEST_PLAN: Plan = {
 };
 
 const PLANS: Record<string, Plan> = {
-  [FREE_TEST_PLAN.id]: FREE_TEST_PLAN,
+  [FREE_PLAN.id]: FREE_PLAN,
 };
 
 export function getPlan(planId: string): Plan {
-  return PLANS[planId] ?? FREE_TEST_PLAN;
+  return PLANS[planId] ?? FREE_PLAN;
 }

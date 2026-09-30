@@ -160,7 +160,7 @@ export default function Profile() {
               )}
             </div>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Free while Wildo is in testing — no card required. Limits reset every month.
+              Included with your account. Limits reset every month.
             </p>
             <div className="mt-4 space-y-3.5">
               {subscriptionLoading ? (

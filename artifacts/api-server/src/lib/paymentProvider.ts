@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, subscriptionsTable, type Subscription } from "@workspace/db";
 
-import { FREE_TEST_PLAN } from "./subscriptionPlans";
+import { FREE_PLAN } from "./subscriptionPlans";
 
 function startOfMonth(from: Date): Date {
   return new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1));
@@ -23,8 +23,10 @@ export interface PaymentProvider {
 }
 
 /**
- * Auto-enrolls every student on the free test plan with no real payment —
- * there's no money involved yet, so there's nothing to charge or fail.
+ * Auto-enrolls every student on the free plan with no real payment step —
+ * there's no money involved yet, so there's nothing to charge or fail. The
+ * rest of the product (limits, resets, blocking at the cap) behaves exactly
+ * as it will once billing is live — this class is the only stand-in piece.
  *
  * This is the one seam to swap out once billing goes live: implement a
  * StripePaymentProvider (reading Stripe's subscription status and billing
@@ -49,7 +51,7 @@ class TestPaymentProvider implements PaymentProvider {
       .insert(subscriptionsTable)
       .values({
         userId,
-        planId: FREE_TEST_PLAN.id,
+        planId: FREE_PLAN.id,
         status: "active",
         provider: this.name,
         currentPeriodStart,
@@ -58,7 +60,7 @@ class TestPaymentProvider implements PaymentProvider {
       .onConflictDoUpdate({
         target: subscriptionsTable.userId,
         set: {
-          planId: FREE_TEST_PLAN.id,
+          planId: FREE_PLAN.id,
           status: "active",
           provider: "test",
           currentPeriodStart,
