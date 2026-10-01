@@ -182,9 +182,9 @@ export default function Tutor() {
         <p className="text-muted-foreground">Your Cambridge {level} academic companion — ask anything about your syllabus.</p>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-5 overflow-hidden">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-5 md:overflow-hidden">
         {/* Sidebar */}
-        <div className="col-span-1 border rounded-xl bg-card flex flex-col overflow-hidden">
+        <div className="col-span-1 border rounded-xl bg-card flex flex-col md:overflow-hidden">
           <div className="p-4 border-b space-y-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">New Session</h2>
             <Select value={newSubject} onValueChange={setNewSubject}>
@@ -200,7 +200,7 @@ export default function Tutor() {
             </Button>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="md:flex-1 md:overflow-y-auto">
             {levelConvos && levelConvos.length > 0 ? (
               <div className="p-2 space-y-1">
                 <p className="px-2 py-1 text-xs text-muted-foreground font-medium">Recent</p>
@@ -224,7 +224,7 @@ export default function Tutor() {
         </div>
 
         {/* Chat Area */}
-        <div className="col-span-1 md:col-span-3 border rounded-xl bg-card flex flex-col overflow-hidden">
+        <div className="col-span-1 md:col-span-3 border rounded-xl bg-card flex flex-col md:overflow-hidden">
           {!activeConversationId ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center space-y-4">
               <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -252,7 +252,7 @@ export default function Tutor() {
                 </div>
               </div>
 
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div ref={scrollRef} className="min-h-[40dvh] md:min-h-0 md:flex-1 md:overflow-y-auto p-4 space-y-4">
                 {messages?.length === 0 && !isStreaming && (
                   <div className="text-center text-muted-foreground text-sm py-8">
                     <p>Session started! Ask any {conversation?.subject} question.</p>

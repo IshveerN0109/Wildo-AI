@@ -6,18 +6,30 @@ import { randomUUID } from "crypto";
 import { tmpdir } from "os";
 import { join } from "path";
 
-const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
-const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+// Constructed lazily (see chat client.ts for why): an eager throw here for a
+// missing OPENAI_API_KEY used to crash the whole server at startup — since
+// routes/index.ts imports every router (including oral-practice, which pulls
+// this module in) up front — instead of only failing oral-practice requests.
+let client: OpenAI | undefined;
 
-if (!apiKey) {
-  throw new Error(
-    "OPENAI_API_KEY must be set. Please add your OpenAI API key to secrets.",
-  );
+function getClient(): OpenAI {
+  if (client) return client;
+
+  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
+  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+
+  if (!apiKey) {
+    throw new Error(
+      "OPENAI_API_KEY must be set. Please add your OpenAI API key to secrets.",
+    );
+  }
+
+  client = new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
+  return client;
 }
 
-export const openai = new OpenAI({
-  apiKey,
-  ...(baseURL ? { baseURL } : {}),
+export const openai: OpenAI = new Proxy({} as OpenAI, {
+  get: (_target, prop, receiver) => Reflect.get(getClient(), prop, receiver),
 });
 
 export type AudioFormat = "wav" | "mp3" | "webm" | "mp4" | "ogg" | "unknown";

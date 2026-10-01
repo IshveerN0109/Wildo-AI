@@ -2,18 +2,30 @@ import fs from "node:fs";
 import OpenAI, { toFile } from "openai";
 import { Buffer } from "node:buffer";
 
-const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
-const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+// Constructed lazily (see chat client.ts for why): this module loads as part
+// of the package's main entrypoint, so an eager throw here for a missing
+// OPENAI_API_KEY used to crash the entire server at startup, not just image
+// generation — including when a non-OpenAI AI_PROVIDER is configured for chat.
+let client: OpenAI | undefined;
 
-if (!apiKey) {
-  throw new Error(
-    "OPENAI_API_KEY must be set. Please add your OpenAI API key to secrets.",
-  );
+function getClient(): OpenAI {
+  if (client) return client;
+
+  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
+  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+
+  if (!apiKey) {
+    throw new Error(
+      "OPENAI_API_KEY must be set. Please add your OpenAI API key to secrets.",
+    );
+  }
+
+  client = new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
+  return client;
 }
 
-export const openai = new OpenAI({
-  apiKey,
-  ...(baseURL ? { baseURL } : {}),
+export const openai: OpenAI = new Proxy({} as OpenAI, {
+  get: (_target, prop, receiver) => Reflect.get(getClient(), prop, receiver),
 });
 
 export async function generateImageBuffer(
