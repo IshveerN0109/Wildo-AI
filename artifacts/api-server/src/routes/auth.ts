@@ -20,6 +20,7 @@ import {
   type SessionData,
 } from "../lib/auth";
 import { sendNewUserNotification } from "../lib/email";
+import { safeErrorDetails } from "../lib/safe-logging";
 
 const OIDC_COOKIE_TTL = 10 * 60 * 1000;
 
@@ -283,7 +284,7 @@ router.post(
       const sid = await createSession(sessionData);
       res.json(ExchangeMobileAuthorizationCodeResponse.parse({ token: sid }));
     } catch (err) {
-      req.log.error({ err }, "Mobile token exchange error");
+      req.log.error(safeErrorDetails(err), "Mobile token exchange error");
       res.status(500).json({ error: "Token exchange failed" });
     }
   },

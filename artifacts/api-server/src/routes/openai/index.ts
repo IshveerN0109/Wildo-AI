@@ -12,6 +12,7 @@ import {
 import { requireAuth } from "../../lib/require-auth";
 import { requireQuota } from "../../lib/require-quota";
 import { ObjectStorageService } from "../../lib/objectStorage";
+import { safeErrorDetails } from "../../lib/safe-logging";
 import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 import {
@@ -478,7 +479,7 @@ router.post("/openai/conversations/:id/messages", requireQuota("tutorMessage"), 
       preparedAttachments.push(prepared);
     }
   } catch (error) {
-    req.log.warn({ err: error }, "Failed to prepare student attachment");
+    req.log.warn(safeErrorDetails(error), "Failed to prepare student attachment");
     res.status(422).json({
       error: error instanceof Error ? error.message : "Could not read one of the attached files.",
     });
@@ -576,7 +577,7 @@ router.post("/openai/conversations/:id/messages", requireQuota("tutorMessage"), 
       stream: true,
     });
   } catch (error) {
-    req.log.error({ err: error }, "Tutor AI request failed");
+    req.log.error(safeErrorDetails(error), "Tutor AI request failed");
     res.status(502).json({ error: "The AI could not process this message. Please try again." });
     return;
   }

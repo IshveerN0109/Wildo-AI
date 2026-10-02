@@ -8,6 +8,7 @@ import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
 import { EvaluateOralPracticeBody, EvaluateOralPracticeResponse } from "@workspace/api-zod";
 import { requireAuth } from "../../lib/require-auth";
 import { requireQuota } from "../../lib/require-quota";
+import { safeErrorDetails } from "../../lib/safe-logging";
 
 const router: IRouter = Router();
 router.use(requireAuth);
@@ -390,7 +391,7 @@ ${transcript}`,
     };
     res.json(EvaluateOralPracticeResponse.parse(responsePayload));
   } catch (error) {
-    req.log.error({ err: error }, "Oral English evaluation failed");
+    req.log.error(safeErrorDetails(error), "Oral English evaluation failed");
     res.status(500).json({
       error: "The examiner could not process that recording. Please try again.",
     });

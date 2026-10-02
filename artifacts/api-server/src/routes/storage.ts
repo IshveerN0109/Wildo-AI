@@ -7,6 +7,7 @@ import {
 } from "@workspace/api-zod";
 import { db, studentAttachmentsTable } from "@workspace/db";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
+import { safeErrorDetails } from "../lib/safe-logging";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -104,7 +105,7 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response):
       }),
     );
   } catch (error) {
-    req.log.error({ err: error }, "Failed to create private upload URL");
+    req.log.error(safeErrorDetails(error), "Failed to create private upload URL");
     res.status(500).json({ error: "Failed to create upload URL" });
   }
 });
@@ -139,7 +140,7 @@ router.get("/storage/objects/*path", async (req: Request, res: Response): Promis
       res.status(404).json({ error: "Attachment not found" });
       return;
     }
-    req.log.error({ err: error }, "Failed to serve private attachment");
+    req.log.error(safeErrorDetails(error), "Failed to serve private attachment");
     res.status(500).json({ error: "Failed to serve attachment" });
   }
 });

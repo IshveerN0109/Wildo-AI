@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { level, clearLevel } = useStudent();
+  const { level, setLevel } = useStudent();
   const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
   const [showLevelMenu, setShowLevelMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -157,12 +157,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {showLevelMenu && (
               <div className="absolute bottom-full mb-1 left-0 right-0 bg-card border rounded-lg shadow-lg overflow-hidden z-50">
                 <p className="px-3 py-2 text-xs text-muted-foreground font-medium border-b">Switch your level</p>
-                <button
-                  onClick={() => { clearLevel(); setShowLevelMenu(false); }}
-                  className="w-full text-left px-3 py-2.5 text-sm hover:bg-accent transition-colors text-destructive font-medium"
-                >
-                  Reset & Choose Again
-                </button>
+                {(["O Level", "A Level"] as const).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={level === option}
+                    onClick={() => {
+                      setLevel(option);
+                      setShowLevelMenu(false);
+                    }}
+                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors hover:bg-accent ${
+                      level === option ? "font-semibold text-primary" : "text-foreground"
+                    }`}
+                  >
+                    {option}{level === option ? " · Current" : ""}
+                  </button>
+                ))}
               </div>
             )}
           </div>
