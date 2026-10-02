@@ -11,7 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Plus, Brain, ShieldCheck, ShieldAlert, Loader2 } from "lucide-react";
+import { Send, Plus, Brain, ShieldCheck, ShieldAlert, Loader2, Paperclip, FileText, Image as ImageIcon, X } from "lucide-react";
 import { SUBJECT_EMOJIS } from "@/lib/constants";
 import { useStudent } from "@/contexts/StudentContext";
 import { MarkdownContent } from "@/components/markdown-content";
@@ -22,6 +22,40 @@ interface Verification {
   markSchemePoints: string[];
   confidence: "high" | "medium" | "low";
   examinerNote: string | null;
+}
+
+interface TutorAttachment {
+  localId: string;
+  file: File;
+  attachmentId?: number;
+  progress: number;
+  status: "uploading" | "ready" | "error";
+  error?: string;
+}
+
+const MAX_ATTACHMENTS = 4;
+const MAX_ATTACHMENT_BYTES = 20_000_000;
+const MAX_TOTAL_ATTACHMENT_BYTES = 30_000_000;
+
+function getUploadContentType(file: File): string {
+  const extension = file.name.toLowerCase().split(".").pop();
+  const contentTypes: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+    pdf: "application/pdf",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    txt: "text/plain",
+    md: "text/markdown",
+    csv: "text/csv",
+    json: "application/json",
+  };
+  if (!file.type || file.type.toLowerCase() === "application/octet-stream") {
+    return contentTypes[extension ?? ""] ?? file.type ?? "application/octet-stream";
+  }
+  return file.type;
 }
 
 function VerificationBadge({ v, loading }: { v: Verification | null; loading: boolean }) {
@@ -66,6 +100,7 @@ export default function Tutor() {
   const [newSubject, setNewSubject] = useState("");
   const [verification, setVerification] = useState<Verification | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [attachments, setAttachments] = useState<TutorAttachment[]>([]);
 
   const { data: conversations } = useListOpenaiConversations();
   const createConvo = useCreateOpenaiConversation();
@@ -80,6 +115,7 @@ export default function Tutor() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -88,6 +124,122 @@ export default function Tutor() {
   }, [messages, streamedResponse]);
 
   const levelConvos = conversations?.filter(c => !c.level || c.level === level);
+  const isUploading = attachments.some((attachment) => attachment.status === "uploading");
+  const readyAttachments = attachments.filter(
+    (attachment): attachment is TutorAttachment & { attachmentId: number } =>
+      attachment.status === "ready" && attachment.attachmentId !== undefined,
+  );
+
+  const updateAttachment = (localId: string, update: Partial<TutorAttachment>) => {
+    setAttachments((current) =>
+      current.map((attachment) => attachment.localId === localId ? { ...attachment, ...update } : attachment),
+    );
+  };
+
+  const uploadAttachment = async (attachment: TutorAttachment) => {
+    const contentType = getUploadContentType(attachment.file);
+    try {
+      if (attachment.file.size > MAX_ATTACHMENT_BYTES) {
+        throw new Error("Files must be 20 MB or smaller.");
+      }
+      const urlResponse = await fetch("/api/storage/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: attachment.file.name,
+          size: attachment.file.size,
+          contentType,
+        }),
+      });
+      const uploadInfo = await urlResponse.json().catch(() => null) as
+        | { uploadURL?: string; attachmentId?: number; error?: string }
+        | null;
+      if (!urlResponse.ok || !uploadInfo?.uploadURL || uploadInfo.attachmentId === undefined) {
+        throw new Error(uploadInfo?.error ?? "Could not prepare the upload.");
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.open("PUT", uploadInfo.uploadURL!);
+        request.setRequestHeader("Content-Type", contentType);
+        request.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            updateAttachment(attachment.localId, {
+              progress: Math.round((event.loaded / event.total) * 100),
+            });
+          }
+        };
+        request.onload = () => {
+          if (request.status >= 200 && request.status < 300) resolve();
+          else reject(new Error("The file could not be uploaded. Please try again."));
+        };
+        request.onerror = () => reject(new Error("Network error while uploading the file."));
+        request.onabort = () => reject(new Error("The file upload was interrupted."));
+        request.send(attachment.file);
+      });
+
+      updateAttachment(attachment.localId, {
+        attachmentId: uploadInfo.attachmentId,
+        progress: 100,
+        status: "ready",
+      });
+    } catch (error) {
+      updateAttachment(attachment.localId, {
+        status: "error",
+        error: error instanceof Error ? error.message : "Upload failed.",
+      });
+    }
+  };
+
+  const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    let currentBytes = attachments
+      .filter((attachment) => attachment.status !== "error")
+      .reduce((total, attachment) => total + attachment.file.size, 0);
+    const selected: File[] = [];
+    let reachedCountLimit = false;
+    let reachedSizeLimit = false;
+    for (const file of files) {
+      if (attachments.length + selected.length >= MAX_ATTACHMENTS) {
+        reachedCountLimit = true;
+        continue;
+      }
+      if (file.size > MAX_ATTACHMENT_BYTES || currentBytes + file.size > MAX_TOTAL_ATTACHMENT_BYTES) {
+        reachedSizeLimit = true;
+        continue;
+      }
+      selected.push(file);
+      currentBytes += file.size;
+    }
+    if (reachedCountLimit) {
+      toast({
+        title: "Attachment limit reached",
+        description: `Attach up to ${MAX_ATTACHMENTS} files to one message.`,
+        variant: "destructive",
+      });
+    }
+    if (reachedSizeLimit) {
+      toast({
+        title: "Attachment size limit reached",
+        description: "Each file can be up to 20 MB, with 30 MB total per message.",
+        variant: "destructive",
+      });
+    }
+
+    const newAttachments = selected.map<TutorAttachment>((file) => ({
+      localId: `${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`,
+      file,
+      progress: 0,
+      status: "uploading",
+    }));
+    setAttachments((current) => [...current, ...newAttachments]);
+    newAttachments.forEach((attachment) => void uploadAttachment(attachment));
+  };
+
+  const removeAttachment = (localId: string) => {
+    setAttachments((current) => current.filter((attachment) => attachment.localId !== localId));
+  };
 
   const handleStartNew = () => {
     if (!newSubject || !level) return;
@@ -103,17 +255,21 @@ export default function Tutor() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !activeConversationId || isStreaming) return;
+    if ((!input.trim() && readyAttachments.length === 0) || !activeConversationId || isStreaming || isUploading) return;
 
-    const messageContent = input;
-    setInput("");
+    const messageContent = input.trim();
+    const attachmentLabel = readyAttachments.length
+      ? `Attachments: ${readyAttachments.map((attachment) => attachment.file.name).join(", ")}`
+      : "";
+    const persistedContent = [messageContent, attachmentLabel].filter(Boolean).join("\n\n");
+    const attachmentIds = readyAttachments.map((attachment) => attachment.attachmentId);
     setIsStreaming(true);
     setStreamedResponse("");
     setVerification(null);
     setVerifying(true);
 
     queryClient.setQueryData(getListOpenaiMessagesQueryKey(activeConversationId), (old: any) => {
-      const tempMsg = { id: Date.now(), conversationId: activeConversationId, role: "user", content: messageContent, createdAt: new Date().toISOString() };
+      const tempMsg = { id: Date.now(), conversationId: activeConversationId, role: "user", content: persistedContent, createdAt: new Date().toISOString() };
       return old ? [...old, tempMsg] : [tempMsg];
     });
 
@@ -121,7 +277,7 @@ export default function Tutor() {
       const response = await fetch(`/api/openai/conversations/${activeConversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: messageContent })
+        body: JSON.stringify({ content: messageContent, attachmentIds })
       });
 
       if (!response.ok) {
@@ -140,6 +296,8 @@ export default function Tutor() {
         return;
       }
 
+      setInput("");
+      setAttachments((current) => current.filter((attachment) => attachment.status === "error"));
       if (!response.body) throw new Error("No body");
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -153,7 +311,7 @@ export default function Tutor() {
           try {
             const data = JSON.parse(line.replace("data: ", "").trim());
             if (data.type === "verification") {
-              setVerification(data as Verification);
+              setVerification(data.skipped ? null : data as Verification);
               setVerifying(false);
             }
             if (data.content) setStreamedResponse(prev => prev + data.content);
@@ -169,6 +327,12 @@ export default function Tutor() {
       setIsStreaming(false);
       setStreamedResponse("");
       setVerifying(false);
+      queryClient.invalidateQueries({ queryKey: getListOpenaiMessagesQueryKey(activeConversationId) });
+      toast({
+        title: "Couldn't finish the response",
+        description: "Please try sending your message again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -312,19 +476,91 @@ export default function Tutor() {
                 )}
               </div>
 
-              <form onSubmit={handleSend} className="p-4 border-t bg-card flex gap-2">
-                <Input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={`Ask about ${conversation?.subject ?? 'your subject'}...`}
-                  disabled={isStreaming}
-                  className="flex-1"
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e); }}}
-                />
-                <Button type="submit" disabled={isStreaming || !input.trim()} size="icon">
-                  <Send className="w-4 h-4" />
-                </Button>
+              <form onSubmit={handleSend} className="p-4 border-t bg-card space-y-3">
+                {attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2" aria-label="Message attachments">
+                    {attachments.map((attachment) => {
+                      const isImage = attachment.file.type.startsWith("image/");
+                      const AttachmentIcon = isImage ? ImageIcon : FileText;
+                      return (
+                        <div key={attachment.localId} className="min-w-0 max-w-full rounded-lg border bg-background px-3 py-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            <AttachmentIcon className="h-4 w-4 shrink-0 text-primary" />
+                            <span className="max-w-48 truncate font-medium" title={attachment.file.name}>
+                              {attachment.file.name}
+                            </span>
+                            {attachment.status === "uploading" && (
+                              <span className="shrink-0 text-muted-foreground">{attachment.progress}%</span>
+                            )}
+                            {attachment.status === "ready" && (
+                              <span className="shrink-0 text-emerald-600">Ready</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removeAttachment(attachment.localId)}
+                              disabled={attachment.status === "uploading"}
+                              className="ml-1 shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-40"
+                              aria-label={`Remove ${attachment.file.name}`}
+                            >
+                              {attachment.status === "uploading"
+                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                : <X className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                          {attachment.status === "uploading" && (
+                            <div className="mt-2 h-1 overflow-hidden rounded bg-muted">
+                              <div className="h-full bg-primary transition-[width]" style={{ width: `${attachment.progress}%` }} />
+                            </div>
+                          )}
+                          {attachment.status === "error" && (
+                            <p className="mt-1 max-w-64 text-destructive">{attachment.error}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.docx,.txt,.md,.csv,.json"
+                    multiple
+                    onChange={handleFileSelection}
+                    aria-label="Choose images or documents"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={isStreaming || attachments.length >= MAX_ATTACHMENTS}
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Attach up to four images or documents (20 MB each)"
+                    aria-label="Attach images or documents"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </Button>
+                  <Input
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={`Ask about ${conversation?.subject ?? "your subject"}...`}
+                    disabled={isStreaming}
+                    className="flex-1"
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(e); } }}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={isStreaming || isUploading || (!input.trim() && readyAttachments.length === 0)}
+                    size="icon"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Attach images, PDF, DOCX, TXT, Markdown, CSV, or JSON files (20 MB each, 30 MB per message).
+                </p>
               </form>
             </>
           )}

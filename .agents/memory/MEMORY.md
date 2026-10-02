@@ -2,3 +2,4 @@
 - [Cloud student data](cloud-student-data.md) — persistent student data is account-owned in managed PostgreSQL; anonymous persistence is disabled.
 - [Revision Mode streaming](revision-streaming.md) — `/api/openai/revision-stream` uses `{ content }` chunk format (not OpenAI-style), same as the existing tutor SSE endpoint.
 - [replit-auth-web lib fix](replit-auth-web-fix.md) — lib tsconfig must have composite+declarationMap+emitDeclarationOnly; avoid import.meta.env (use document.baseURI instead).
+- [Attachment AI routing](attachment-ai-routing.md) — keep normal chat on its configured provider; image turns use a separate OpenAI client with the student's key.

@@ -36,6 +36,19 @@ const allowedExtensions = new Set([
   ".csv",
   ".json",
 ]);
+const contentTypesByExtension: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".pdf": "application/pdf",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".txt": "text/plain",
+  ".md": "text/markdown",
+  ".csv": "text/csv",
+  ".json": "application/json",
+};
 
 function authenticatedUserId(req: Request): string | null {
   return req.isAuthenticated() ? req.user!.id : null;
@@ -56,6 +69,9 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response):
 
   const { name, size, contentType } = parsed.data;
   const extension = name.includes(".") ? `.${name.split(".").pop()!.toLowerCase()}` : "";
+  const normalizedContentType = contentType.toLowerCase() === "application/octet-stream"
+    ? contentTypesByExtension[extension] ?? contentType
+    : contentType;
   if (size > MAX_FILE_SIZE) {
     res.status(413).json({ error: "Files must be 20 MB or smaller" });
     return;
@@ -74,7 +90,7 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response):
         userId,
         objectPath,
         fileName: name,
-        contentType: contentType || "application/octet-stream",
+        contentType: normalizedContentType || "application/octet-stream",
         size,
       })
       .returning({ id: studentAttachmentsTable.id });

@@ -1,10 +1,19 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
-import { db, conversations, messages } from "@workspace/db";
+import { eq, and, inArray } from "drizzle-orm";
+import { db, conversations, messages, studentAttachmentsTable } from "@workspace/db";
 import { recordQuestionForUser } from "../streaks";
-import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
+import {
+  openai,
+  openaiVision,
+  CHAT_MODEL,
+  VISION_CHAT_MODEL,
+  type ChatCompletionMessageParam,
+} from "@workspace/integrations-openai-ai-server";
 import { requireAuth } from "../../lib/require-auth";
 import { requireQuota } from "../../lib/require-quota";
+import { ObjectStorageService } from "../../lib/objectStorage";
+import { PDFParse } from "pdf-parse";
+import mammoth from "mammoth";
 import {
   CreateOpenaiConversationBody,
   GetOpenaiConversationParams,
@@ -16,6 +25,81 @@ import {
 
 const router: IRouter = Router();
 router.use(requireAuth);
+const objectStorageService = new ObjectStorageService();
+const MAX_ATTACHMENT_BYTES = 20_000_000;
+const MAX_TOTAL_ATTACHMENT_BYTES = 30_000_000;
+const MAX_DOCUMENT_TEXT_CHARS = 40_000;
+const MAX_TOTAL_DOCUMENT_TEXT_CHARS = 100_000;
+
+interface PreparedAttachment {
+  id: number;
+  fileName: string;
+  contentType: string;
+  size: number;
+  imageDataUrl?: string;
+  extractedText?: string;
+}
+
+async function extractPdfText(buffer: Buffer): Promise<string> {
+  const parser = new PDFParse({ data: buffer });
+  try {
+    return (await parser.getText()).text;
+  } finally {
+    await parser.destroy();
+  }
+}
+
+async function prepareAttachment(
+  attachment: typeof studentAttachmentsTable.$inferSelect,
+): Promise<PreparedAttachment> {
+  const file = await objectStorageService.getObjectEntityFile(attachment.objectPath);
+  const [metadata] = await file.getMetadata();
+  if (Number(metadata.size ?? attachment.size) > MAX_ATTACHMENT_BYTES) {
+    throw new Error(`"${attachment.fileName}" exceeds the 20 MB attachment limit.`);
+  }
+
+  const [buffer] = await file.download();
+  if (buffer.byteLength > MAX_ATTACHMENT_BYTES) {
+    throw new Error(`"${attachment.fileName}" exceeds the 20 MB attachment limit.`);
+  }
+
+  const contentType = attachment.contentType.split(";")[0].trim().toLowerCase();
+  const prepared: PreparedAttachment = {
+    id: attachment.id,
+    fileName: attachment.fileName,
+    contentType,
+    size: buffer.byteLength,
+  };
+
+  if (contentType.startsWith("image/")) {
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(contentType)) {
+      throw new Error(`"${attachment.fileName}" uses an unsupported image format.`);
+    }
+    prepared.imageDataUrl = `data:${contentType};base64,${buffer.toString("base64")}`;
+    return prepared;
+  }
+
+  if (contentType === "application/pdf") {
+    prepared.extractedText = await extractPdfText(buffer);
+    if (!prepared.extractedText.trim()) {
+      throw new Error(`"${attachment.fileName}" has no selectable text. Upload a text-based PDF or page images.`);
+    }
+  } else if (contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    prepared.extractedText = (await mammoth.extractRawText({ buffer })).value;
+  } else if (
+    contentType === "text/plain" ||
+    contentType === "text/markdown" ||
+    contentType === "text/csv" ||
+    contentType === "application/json"
+  ) {
+    prepared.extractedText = buffer.toString("utf8");
+  } else {
+    throw new Error(`"${attachment.fileName}" has an unsupported document format.`);
+  }
+
+  prepared.extractedText = prepared.extractedText.slice(0, MAX_DOCUMENT_TEXT_CHARS);
+  return prepared;
+}
 
 // ─── Cambridge Verification Pipeline ────────────────────────────────────────
 
@@ -345,6 +429,11 @@ router.post("/openai/conversations/:id/messages", requireQuota("tutorMessage"), 
     res.status(400).json({ error: body.error.message });
     return;
   }
+  const attachmentIds = [...new Set(body.data.attachmentIds ?? [])];
+  if (!body.data.content.trim() && attachmentIds.length === 0) {
+    res.status(400).json({ error: "Enter a message or attach a file." });
+    return;
+  }
 
   const [conv] = await db
     .select()
@@ -355,10 +444,59 @@ router.post("/openai/conversations/:id/messages", requireQuota("tutorMessage"), 
     return;
   }
 
+  const ownedAttachments = attachmentIds.length
+    ? await db
+        .select()
+        .from(studentAttachmentsTable)
+        .where(
+          and(
+            eq(studentAttachmentsTable.userId, req.user!.id),
+            inArray(studentAttachmentsTable.id, attachmentIds),
+          ),
+        )
+    : [];
+  if (ownedAttachments.length !== attachmentIds.length) {
+    res.status(404).json({ error: "One or more attachments were not found." });
+    return;
+  }
+  if (ownedAttachments.reduce((total, attachment) => total + attachment.size, 0) > MAX_TOTAL_ATTACHMENT_BYTES) {
+    res.status(413).json({ error: "Attachments must total 30 MB or less per message." });
+    return;
+  }
+
+  let preparedAttachments: PreparedAttachment[] = [];
+  try {
+    const attachmentsById = new Map(ownedAttachments.map((attachment) => [attachment.id, attachment]));
+    let totalBytes = 0;
+    for (const id of attachmentIds) {
+      const prepared = await prepareAttachment(attachmentsById.get(id)!);
+      totalBytes += prepared.size;
+      if (totalBytes > MAX_TOTAL_ATTACHMENT_BYTES) {
+        res.status(413).json({ error: "Attachments must total 30 MB or less per message." });
+        return;
+      }
+      preparedAttachments.push(prepared);
+    }
+  } catch (error) {
+    req.log.warn({ err: error }, "Failed to prepare student attachment");
+    res.status(422).json({
+      error: error instanceof Error ? error.message : "Could not read one of the attached files.",
+    });
+    return;
+  }
+
+  const attachmentNames = preparedAttachments.map((attachment) => attachment.fileName);
+  const persistedUserContent = [
+    body.data.content.trim(),
+    attachmentNames.length ? `Attachments: ${attachmentNames.join(", ")}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   await db.insert(messages).values({
     conversationId: params.data.id,
     role: "user",
-    content: body.data.content,
+    content: persistedUserContent,
   });
   if (req.isAuthenticated()) {
     await recordQuestionForUser(req.user.id);
@@ -371,15 +509,19 @@ router.post("/openai/conversations/:id/messages", requireQuota("tutorMessage"), 
     .orderBy(messages.createdAt);
 
   // Phase 1: fast verification (runs before streaming starts)
-  const verification = await verifyQuestion(body.data.content, conv.subject, conv.level);
+  const verification = body.data.content.trim()
+    ? await verifyQuestion(body.data.content, conv.subject, conv.level)
+    : null;
 
   const subjectContext = conv.subject
     ? ` Focus on ${conv.subject} at ${conv.level ?? "Cambridge"} level.`
     : "";
 
-  const verificationContext = buildVerificationContext(verification);
+  const verificationContext = verification
+    ? buildVerificationContext(verification)
+    : "No typed question was provided. Analyze the attached material directly and explain what is visible or readable.";
 
-  const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+  const chatMessages: ChatCompletionMessageParam[] = [
     { role: "system", content: CAMBRIDGE_SYSTEM_PROMPT + subjectContext + "\n\n" + verificationContext },
     ...history.map((m) => ({
       role: m.role as "user" | "assistant",
@@ -387,20 +529,66 @@ router.post("/openai/conversations/:id/messages", requireQuota("tutorMessage"), 
     })),
   ];
 
+  const latestUserMessage = chatMessages.length - 1;
+  const latestUserText = history[history.length - 1]?.content ?? persistedUserContent;
+  const documentText = preparedAttachments
+    .filter((attachment) => attachment.extractedText)
+    .map((attachment) => {
+      const text = attachment.extractedText ?? "";
+      const wasTruncated = text.length >= MAX_DOCUMENT_TEXT_CHARS;
+      return [
+        `\n\n--- Document: ${attachment.fileName} ---`,
+        text,
+        wasTruncated ? "\n[Document text truncated for length.]" : "",
+      ].join("\n");
+    })
+    .join("\n")
+    .slice(0, MAX_TOTAL_DOCUMENT_TEXT_CHARS);
+
+  const imageAttachments = preparedAttachments.filter(
+    (attachment): attachment is PreparedAttachment & { imageDataUrl: string } =>
+      Boolean(attachment.imageDataUrl),
+  );
+  const currentUserText = [
+    latestUserText || "Please help me understand the attached file(s).",
+    documentText,
+  ].join("\n");
+  const hasImages = imageAttachments.length > 0;
+  chatMessages[latestUserMessage] = hasImages
+    ? {
+        role: "user",
+        content: [
+          { type: "text", text: currentUserText },
+          ...imageAttachments.map((attachment) => ({
+            type: "image_url" as const,
+            image_url: { url: attachment.imageDataUrl, detail: "auto" as const },
+          })),
+        ],
+      }
+    : { role: "user", content: currentUserText };
+
+  let stream;
+  try {
+    stream = await (hasImages ? openaiVision : openai).chat.completions.create({
+      model: hasImages ? VISION_CHAT_MODEL : CHAT_MODEL,
+      max_tokens: 8192,
+      messages: chatMessages,
+      stream: true,
+    });
+  } catch (error) {
+    req.log.error({ err: error }, "Tutor AI request failed");
+    res.status(502).json({ error: "The AI could not process this message. Please try again." });
+    return;
+  }
+
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
-  // Send verification metadata to frontend before content starts
-  res.write(`data: ${JSON.stringify({ type: "verification", ...verification })}\n\n`);
+  // Send verification metadata to frontend before content starts.
+  res.write(`data: ${JSON.stringify({ type: "verification", skipped: !verification, ...(verification ?? {}) })}\n\n`);
 
   let fullResponse = "";
-  const stream = await openai.chat.completions.create({
-    model: CHAT_MODEL,
-    max_tokens: 8192,
-    messages: chatMessages,
-    stream: true,
-  });
 
   for await (const chunk of stream) {
     const content = chunk.choices[0]?.delta?.content;

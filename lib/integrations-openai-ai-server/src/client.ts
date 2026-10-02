@@ -50,6 +50,7 @@ export const CHAT_MODEL =
 // actually hit the AI provider fail (with a clear error), everything else
 // keeps working.
 let client: OpenAI | undefined;
+let visionClient: OpenAI | undefined;
 
 function getClient(): OpenAI {
   if (client) return client;
@@ -76,3 +77,23 @@ function getClient(): OpenAI {
 export const openai: OpenAI = new Proxy({} as OpenAI, {
   get: (_target, prop, receiver) => Reflect.get(getClient(), prop, receiver),
 });
+
+function getVisionClient(): OpenAI {
+  if (visionClient) return visionClient;
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY must be set to analyze image attachments.");
+  }
+
+  visionClient = new OpenAI({ apiKey });
+  return visionClient;
+}
+
+// Keep image analysis on the student's explicitly supplied OpenAI key without
+// changing the provider used for the rest of the application.
+export const openaiVision: OpenAI = new Proxy({} as OpenAI, {
+  get: (_target, prop, receiver) => Reflect.get(getVisionClient(), prop, receiver),
+});
+
+export const VISION_CHAT_MODEL = "gpt-4o";

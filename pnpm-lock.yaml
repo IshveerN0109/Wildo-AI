@@ -158,6 +158,9 @@ importers:
       '@google-cloud/storage':
         specifier: ^7.16.0
         version: 7.22.0
+      '@napi-rs/canvas':
+        specifier: 0.1.80
+        version: 0.1.80
       '@workspace/api-zod':
         specifier: workspace:*
         version: link:../../lib/api-zod
