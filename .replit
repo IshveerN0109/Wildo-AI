@@ -21,14 +21,11 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
-<<<<<<< HEAD
-
-[objectStorage]
-defaultBucketID = "replit-objstore-3ec87ea4-2f6f-4e7b-a869-21bcd8dd295b"
-=======
 # ffmpeg is spawned by lib/integrations-openai-ai-server/src/audio/client.ts
 # (ensureCompatibleFormat) to normalize recorded audio before sending it to
 # Whisper for oral-practice speech-to-text. Without it that call fails with
 # "ffmpeg ENOENT", breaking /oral-practice/evaluate end to end.
 packages = ["ffmpeg"]
->>>>>>> origin/main
+
+[objectStorage]
+defaultBucketID = "replit-objstore-3ec87ea4-2f6f-4e7b-a869-21bcd8dd295b"
