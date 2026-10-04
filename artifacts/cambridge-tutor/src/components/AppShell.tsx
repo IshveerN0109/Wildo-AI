@@ -1,10 +1,61 @@
 import { Link, useLocation } from "wouter";
-import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User, Zap, Flame, Mic, Menu, X, Star } from "lucide-react";
-import { useGetStreak } from "@workspace/api-client-react";
+import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User, Zap, Flame, Mic, Menu, X, Star, Coins } from "lucide-react";
+import { useGetStreak, useGetSubscriptionUsage, getGetSubscriptionUsageQueryKey, type SubscriptionFeature } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useStudent } from "@/contexts/StudentContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { WILDO_LOGO } from "@/lib/branding";
+import { SUBSCRIPTION_FEATURE_LABELS } from "@/lib/constants";
+import { Progress } from "@/components/ui/progress";
 import { useEffect, useState } from "react";
+
+// Mutations that consume a quota unit server-side (see requireQuota() call
+// sites in api-server/src/routes). Tutor chat sends go through a raw fetch
+// for SSE streaming, not a react-query mutation, so it's invalidated
+// manually in tutor.tsx instead of being caught here.
+const QUOTA_MUTATION_KEYS = new Set(["generateNote", "generateFlashcardSet", "generateQuiz", "evaluateOralPractice"]);
+
+const FEATURE_BY_PATH: Record<string, SubscriptionFeature> = {
+  "/tutor": "tutorMessage",
+  "/notes": "noteGeneration",
+  "/quiz": "quizGeneration",
+  "/flashcards": "flashcardGeneration",
+  "/oral-practice": "oralPractice",
+};
+
+function percent(used: number, limit: number) {
+  return Math.min(100, Math.round((used / Math.max(limit, 1)) * 100));
+}
+
+function CreditsIndicator({ location, isAuthenticated }: { location: string; isAuthenticated: boolean }) {
+  const { data: subscription } = useGetSubscriptionUsage({
+    query: { enabled: isAuthenticated, queryKey: getGetSubscriptionUsageQueryKey() },
+  });
+  if (!isAuthenticated || !subscription || subscription.usage.length === 0) return null;
+
+  const pathFeature = Object.entries(FEATURE_BY_PATH).find(([path]) => location.startsWith(path))?.[1];
+  const current = pathFeature ? subscription.usage.find((u) => u.feature === pathFeature) : null;
+
+  const label = current ? SUBSCRIPTION_FEATURE_LABELS[current.feature] ?? current.feature : "Credits this month";
+  const used = current ? current.used : subscription.usage.reduce((sum, u) => sum + u.used, 0);
+  const limit = current ? current.limit : subscription.usage.reduce((sum, u) => sum + u.limit, 0);
+  const remaining = current ? current.remaining : Math.max(0, limit - used);
+
+  return (
+    <Link href="/plans">
+      <div className="rounded-lg px-3 py-2.5 bg-sidebar-accent/40 hover:bg-sidebar-accent/60 transition-colors cursor-pointer">
+        <div className="flex items-center gap-1.5 text-xs">
+          <Coins className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span className="truncate text-sidebar-foreground/80">{label}</span>
+          <span className={`ml-auto font-medium shrink-0 ${remaining === 0 ? "text-destructive" : "text-sidebar-foreground"}`}>
+            {remaining} left
+          </span>
+        </div>
+        <Progress value={percent(used, limit)} className={`mt-1.5 h-1.5 ${remaining === 0 ? "[&>div]:bg-destructive" : ""}`} />
+      </div>
+    </Link>
+  );
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -13,6 +64,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [showLevelMenu, setShowLevelMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const unsubscribe = queryClient.getMutationCache().subscribe((event) => {
+      if (event.type !== "updated" || event.mutation.state.status !== "success") return;
+      const key = event.mutation.options.mutationKey?.[0];
+      if (typeof key === "string" && QUOTA_MUTATION_KEYS.has(key)) {
+        queryClient.invalidateQueries({ queryKey: getGetSubscriptionUsageQueryKey() });
+      }
+    });
+    return unsubscribe;
+  }, [queryClient]);
 
   const navItems = [
     { href: "/tutor", label: "AI Tutor", icon: Brain, featured: true },
@@ -176,6 +239,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             )}
           </div>
+
+          <CreditsIndicator location={location} isAuthenticated={isAuthenticated} />
 
           {/* Streak */}
           {streak && streak.currentStreak > 0 && (

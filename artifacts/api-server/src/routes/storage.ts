@@ -134,6 +134,10 @@ router.get("/storage/objects/*path", async (req: Request, res: Response): Promis
     res.setHeader("Content-Type", metadata.contentType || attachment.contentType);
     res.setHeader("Content-Length", String(metadata.size ?? attachment.size));
     res.setHeader("Cache-Control", "private, max-age=300");
+    // The upload URL isn't content-type-constrained, so a client could PUT
+    // bytes that don't match the declared type — nosniff stops a browser
+    // from executing a mislabeled upload (e.g. HTML served as "image/png").
+    res.setHeader("X-Content-Type-Options", "nosniff");
     Readable.from(file.createReadStream()).pipe(res);
   } catch (error) {
     if (error instanceof ObjectNotFoundError) {
