@@ -21,3 +21,8 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
+# ffmpeg is spawned by lib/integrations-openai-ai-server/src/audio/client.ts
+# (ensureCompatibleFormat) to normalize recorded audio before sending it to
+# Whisper for oral-practice speech-to-text. Without it that call fails with
+# "ffmpeg ENOENT", breaking /oral-practice/evaluate end to end.
+packages = ["ffmpeg"]

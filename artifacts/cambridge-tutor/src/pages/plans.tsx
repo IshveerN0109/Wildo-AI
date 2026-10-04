@@ -78,10 +78,21 @@ export default function Plans() {
                   <h2 className="font-serif text-xl font-bold">{plan.name}</h2>
                   {plan.priceCents > 0 && <Sparkles className="h-4 w-4 text-primary" />}
                 </div>
-                <p className="mt-1">
-                  <span className="text-2xl font-bold">{formatPrice(plan.priceCents)}</span>
-                  {plan.priceCents > 0 && <span className="text-sm text-muted-foreground"> /month</span>}
-                </p>
+                {plan.priceCents > 0 ? (
+                  <div className="mt-1">
+                    <p className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold">Free</span>
+                      <span className="text-sm text-muted-foreground line-through">{formatPrice(plan.priceCents)}/mo</span>
+                    </p>
+                    <span className="mt-1 inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                      Free during beta — no card required
+                    </span>
+                  </div>
+                ) : (
+                  <p className="mt-1">
+                    <span className="text-2xl font-bold">{formatPrice(plan.priceCents)}</span>
+                  </p>
+                )}
                 <ul className="mt-5 flex-1 space-y-2.5">
                   {plan.limits.map((l) => (
                     <li key={l.feature} className="flex items-start gap-2 text-sm">

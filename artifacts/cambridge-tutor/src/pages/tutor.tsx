@@ -1,21 +1,38 @@
 import { useState, useRef, useEffect } from "react";
-import { 
-  useListOpenaiConversations, 
-  useCreateOpenaiConversation, 
+import {
+  useListOpenaiConversations,
+  useCreateOpenaiConversation,
   useGetOpenaiConversation,
   useListOpenaiMessages,
+  useRequestUploadUrl,
   getGetOpenaiConversationQueryKey,
-  getListOpenaiMessagesQueryKey
+  getListOpenaiMessagesQueryKey,
+  getGetSubscriptionUsageQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Plus, Brain, ShieldCheck, ShieldAlert, Loader2 } from "lucide-react";
+import { Send, Plus, Brain, ShieldCheck, ShieldAlert, Loader2, Paperclip, X, FileText } from "lucide-react";
 import { SUBJECT_EMOJIS } from "@/lib/constants";
 import { useStudent } from "@/contexts/StudentContext";
 import { MarkdownContent } from "@/components/markdown-content";
 import { useToast } from "@/hooks/use-toast";
+
+const MAX_ATTACHMENTS = 4;
+const MAX_ATTACHMENT_SIZE = 20_000_000;
+const ALLOWED_ATTACHMENT_TYPES = [
+  "image/jpeg", "image/png", "image/webp", "image/gif",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain", "text/markdown", "text/csv", "application/json",
+];
+const ATTACHMENT_ACCEPT = ".jpg,.jpeg,.png,.webp,.gif,.pdf,.docx,.txt,.md,.csv,.json";
+
+interface PendingAttachment {
+  id: number;
+  name: string;
+}
 
 interface Verification {
   syllabusRef: string | null;
@@ -67,6 +84,11 @@ export default function Tutor() {
   const [verification, setVerification] = useState<Verification | null>(null);
   const [verifying, setVerifying] = useState(false);
 
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const requestUploadUrl = useRequestUploadUrl();
+
   const { data: conversations } = useListOpenaiConversations();
   const createConvo = useCreateOpenaiConversation();
 
@@ -101,12 +123,59 @@ export default function Tutor() {
     });
   };
 
+  const handleAttachFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const incoming = Array.from(files).slice(0, MAX_ATTACHMENTS - pendingAttachments.length);
+    if (incoming.length === 0) {
+      toast({ title: "Attachment limit reached", description: `You can attach up to ${MAX_ATTACHMENTS} files per message.`, variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      for (const file of incoming) {
+        if (file.size > MAX_ATTACHMENT_SIZE) {
+          toast({ title: "File too large", description: `${file.name} is over 20 MB.`, variant: "destructive" });
+          continue;
+        }
+        if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
+          toast({ title: "Unsupported file type", description: `${file.name}: supported files are images, PDF, DOCX, TXT, MD, CSV, and JSON.`, variant: "destructive" });
+          continue;
+        }
+
+        try {
+          const { uploadURL, attachmentId } = await requestUploadUrl.mutateAsync({
+            data: { name: file.name, size: file.size, contentType: file.type },
+          });
+          const putResponse = await fetch(uploadURL, {
+            method: "PUT",
+            headers: { "Content-Type": file.type },
+            body: file,
+          });
+          if (!putResponse.ok) throw new Error("Upload failed");
+          setPendingAttachments(prev => [...prev, { id: attachmentId, name: file.name }]);
+        } catch {
+          toast({ title: "Upload failed", description: `Couldn't upload ${file.name}. Please try again.`, variant: "destructive" });
+        }
+      }
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeAttachment = (id: number) => {
+    setPendingAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !activeConversationId || isStreaming) return;
 
     const messageContent = input;
+    const attachmentIds = pendingAttachments.map(a => a.id);
     setInput("");
+    setPendingAttachments([]);
     setIsStreaming(true);
     setStreamedResponse("");
     setVerification(null);
@@ -121,7 +190,7 @@ export default function Tutor() {
       const response = await fetch(`/api/openai/conversations/${activeConversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: messageContent })
+        body: JSON.stringify({ content: messageContent, ...(attachmentIds.length > 0 ? { attachmentIds } : {}) })
       });
 
       if (!response.ok) {
@@ -159,6 +228,7 @@ export default function Tutor() {
             if (data.content) setStreamedResponse(prev => prev + data.content);
             if (data.done) {
               queryClient.invalidateQueries({ queryKey: getListOpenaiMessagesQueryKey(activeConversationId) });
+              queryClient.invalidateQueries({ queryKey: getGetSubscriptionUsageQueryKey() });
               setIsStreaming(false);
               setStreamedResponse("");
             }
@@ -312,19 +382,52 @@ export default function Tutor() {
                 )}
               </div>
 
-              <form onSubmit={handleSend} className="p-4 border-t bg-card flex gap-2">
-                <Input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={`Ask about ${conversation?.subject ?? 'your subject'}...`}
-                  disabled={isStreaming}
-                  className="flex-1"
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e); }}}
-                />
-                <Button type="submit" disabled={isStreaming || !input.trim()} size="icon">
-                  <Send className="w-4 h-4" />
-                </Button>
+              <form onSubmit={handleSend} className="p-4 border-t bg-card space-y-2">
+                {pendingAttachments.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {pendingAttachments.map(a => (
+                      <span key={a.id} className="inline-flex items-center gap-1.5 bg-muted text-xs rounded-full pl-2.5 pr-1.5 py-1 max-w-[180px]">
+                        <FileText className="w-3 h-3 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{a.name}</span>
+                        <button type="button" onClick={() => removeAttachment(a.id)} className="shrink-0 rounded-full hover:bg-background/60 p-0.5" aria-label={`Remove ${a.name}`}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept={ATTACHMENT_ACCEPT}
+                    className="hidden"
+                    onChange={(e) => handleAttachFiles(e.target.files)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={isStreaming || uploading || pendingAttachments.length >= MAX_ATTACHMENTS}
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label="Attach a file"
+                  >
+                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+                  </Button>
+                  <Input
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={`Ask about ${conversation?.subject ?? 'your subject'}...`}
+                    disabled={isStreaming}
+                    className="flex-1"
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e); }}}
+                  />
+                  <Button type="submit" disabled={isStreaming || !input.trim()} size="icon">
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
               </form>
             </>
           )}

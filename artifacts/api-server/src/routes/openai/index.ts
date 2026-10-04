@@ -2,9 +2,17 @@ import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, conversations, messages } from "@workspace/db";
 import { recordQuestionForUser } from "../streaks";
-import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
+import {
+  openai,
+  CHAT_MODEL,
+  visionOpenai,
+  VISION_MODEL,
+  type ChatCompletionMessageParam,
+  type ChatCompletionContentPart,
+} from "@workspace/integrations-openai-ai-server";
 import { requireAuth } from "../../lib/require-auth";
 import { requireQuota } from "../../lib/require-quota";
+import { resolveAttachments, hasImages, buildAttachmentPromptText } from "../../lib/attachments";
 import {
   CreateOpenaiConversationBody,
   GetOpenaiConversationParams,
@@ -370,6 +378,12 @@ router.post("/openai/conversations/:id/messages", requireQuota("tutorMessage"), 
     .where(eq(messages.conversationId, params.data.id))
     .orderBy(messages.createdAt);
 
+  // Attachments are resolved fresh for this request only — the extracted
+  // text/images are never persisted to the message row, so a follow-up
+  // question later in the conversation won't still see them (a known
+  // limitation of this first pass, not an oversight).
+  const attachments = await resolveAttachments(req.user!.id, body.data.attachmentIds ?? []);
+
   // Phase 1: fast verification (runs before streaming starts)
   const verification = await verifyQuestion(body.data.content, conv.subject, conv.level);
 
@@ -379,13 +393,28 @@ router.post("/openai/conversations/:id/messages", requireQuota("tutorMessage"), 
 
   const verificationContext = buildVerificationContext(verification);
 
-  const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+  const lastMessageIndex = history.length - 1;
+  const chatMessages: ChatCompletionMessageParam[] = [
     { role: "system", content: CAMBRIDGE_SYSTEM_PROMPT + subjectContext + "\n\n" + verificationContext },
-    ...history.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    })),
+    ...history.map((m, i) => {
+      if (i === lastMessageIndex && m.role === "user" && attachments.length > 0) {
+        const parts: ChatCompletionContentPart[] = [
+          { type: "text", text: buildAttachmentPromptText(m.content, attachments) },
+        ];
+        for (const a of attachments) {
+          if (a.kind === "image") {
+            parts.push({ type: "image_url", image_url: { url: a.imageDataUrl! } });
+          }
+        }
+        return { role: "user" as const, content: parts };
+      }
+      return { role: m.role as "user" | "assistant", content: m.content };
+    }),
   ];
+
+  const useVision = hasImages(attachments);
+  const client = useVision ? visionOpenai : openai;
+  const model = useVision ? VISION_MODEL : CHAT_MODEL;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -395,8 +424,8 @@ router.post("/openai/conversations/:id/messages", requireQuota("tutorMessage"), 
   res.write(`data: ${JSON.stringify({ type: "verification", ...verification })}\n\n`);
 
   let fullResponse = "";
-  const stream = await openai.chat.completions.create({
-    model: CHAT_MODEL,
+  const stream = await client.chat.completions.create({
+    model,
     max_tokens: 8192,
     messages: chatMessages,
     stream: true,
