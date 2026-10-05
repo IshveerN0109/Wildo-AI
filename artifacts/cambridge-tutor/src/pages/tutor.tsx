@@ -382,7 +382,7 @@ export default function Tutor() {
                 )}
               </div>
 
-              <form onSubmit={handleSend} className="p-4 border-t bg-card space-y-2">
+              <form onSubmit={handleSend} className="p-4 border-t bg-card space-y-2 max-md:sticky max-md:bottom-0 max-md:z-10 max-md:shadow-[0_-4px_12px_-4px_rgba(0,0,0,0.08)]">
                 {pendingAttachments.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {pendingAttachments.map(a => (
