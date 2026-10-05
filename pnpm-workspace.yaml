@@ -33,6 +33,10 @@ minimumReleaseAgeExclude:
   # this setting guards against does not apply to our own packages.
   - '@replit/*'
   - stripe-replit-sync
+  # Stripe's official SDK — a well-established, trusted payment infra vendor.
+  # Needed immediately for billing; a fresh release landing inside the 24h
+  # window otherwise makes it silently unresolvable at build time.
+  - stripe
 
 packages:
   - artifacts/*
