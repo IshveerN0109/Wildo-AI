@@ -11,6 +11,7 @@ import oralPracticeRouter from "./oral-practice";
 import studentProfileRouter from "./student-profile";
 import storageRouter from "./storage";
 import subscriptionRouter from "./subscription";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(oralPracticeRouter);
 router.use(studentProfileRouter);
 router.use(storageRouter);
 router.use(subscriptionRouter);
+router.use(adminRouter);
 
 export default router;

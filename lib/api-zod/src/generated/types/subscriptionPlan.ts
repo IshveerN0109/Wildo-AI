@@ -10,7 +10,8 @@ import type { SubscriptionPlanLimit } from './subscriptionPlanLimit';
 export interface SubscriptionPlan {
   id: string;
   name: string;
-  /** Display-only monthly price in cents (0 = free). Nothing is charged yet. */
+  /** Monthly price in cents (0 = free). */
   priceCents: number;
+  allowsTopups: boolean;
   limits: SubscriptionPlanLimit[];
 }

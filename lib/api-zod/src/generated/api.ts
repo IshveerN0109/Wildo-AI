@@ -21,7 +21,8 @@ export const GetCurrentAuthUserResponse = zod.object({
   "email": zod.string().email().nullable(),
   "firstName": zod.string().nullable(),
   "lastName": zod.string().nullable(),
-  "profileImageUrl": zod.string().nullable()
+  "profileImageUrl": zod.string().nullable(),
+  "isAdmin": zod.boolean()
 }),zod.null()])
 })
 
@@ -677,6 +678,7 @@ export const GetSubscriptionUsageResponse = zod.object({
   "status": zod.enum(['active', 'canceled', 'past_due', 'expired']),
   "currentPeriodStart": zod.coerce.date(),
   "currentPeriodEnd": zod.coerce.date(),
+  "allowsTopups": zod.boolean().describe('Whether the student\'s current plan permits purchasing extra credit packs.'),
   "usage": zod.array(zod.object({
   "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
   "used": zod.number().describe('Units consumed so far in the current billing period.'),
@@ -692,7 +694,8 @@ export const GetSubscriptionUsageResponse = zod.object({
 export const ListSubscriptionPlansResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "priceCents": zod.number().describe('Display-only monthly price in cents (0 = free). Nothing is charged yet.'),
+  "priceCents": zod.number().describe('Monthly price in cents (0 = free).'),
+  "allowsTopups": zod.boolean(),
   "limits": zod.array(zod.object({
   "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
   "limit": zod.number().describe('Units included per billing period for this feature on this plan.')
@@ -715,11 +718,217 @@ export const SelectSubscriptionPlanResponse = zod.object({
   "status": zod.enum(['active', 'canceled', 'past_due', 'expired']),
   "currentPeriodStart": zod.coerce.date(),
   "currentPeriodEnd": zod.coerce.date(),
+  "allowsTopups": zod.boolean().describe('Whether the student\'s current plan permits purchasing extra credit packs.'),
   "usage": zod.array(zod.object({
   "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
   "used": zod.number().describe('Units consumed so far in the current billing period.'),
   "limit": zod.number().describe('Units included in the student\'s plan for this feature, per billing period.'),
   "remaining": zod.number().describe('Units left before the student hits their limit for this feature.')
+}))
+})
+
+
+/**
+ * @summary Start a Stripe Checkout session to upgrade to a paid plan
+ */
+export const CreateSubscriptionCheckoutBody = zod.object({
+  "planId": zod.string()
+})
+
+export const CreateSubscriptionCheckoutResponse = zod.object({
+  "url": zod.string().url()
+})
+
+
+/**
+ * @summary Get a link to the Stripe-hosted billing portal (manage card, invoices, cancel)
+ */
+export const GetSubscriptionPortalResponse = zod.object({
+  "url": zod.string().url()
+})
+
+
+/**
+ * @summary List purchasable credit top-up packs
+ */
+export const ListCreditPacksResponseItem = zod.object({
+  "id": zod.number(),
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
+  "label": zod.string(),
+  "amount": zod.number(),
+  "priceCents": zod.number()
+})
+export const ListCreditPacksResponse = zod.array(ListCreditPacksResponseItem)
+
+
+/**
+ * Only allowed when the student's current plan has allowsTopups=true.
+ * @summary Start a Stripe Checkout session to purchase a credit pack
+ */
+export const CreateTopupCheckoutBody = zod.object({
+  "creditPackId": zod.number()
+})
+
+export const CreateTopupCheckoutResponse = zod.object({
+  "url": zod.string().url()
+})
+
+
+/**
+ * @summary List all plans, including inactive ones (admin only)
+ */
+export const AdminListPlansResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "priceCents": zod.number().describe('Monthly price in cents (0 = free).'),
+  "allowsTopups": zod.boolean(),
+  "limits": zod.array(zod.object({
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
+  "limit": zod.number().describe('Units included per billing period for this feature on this plan.')
+}))
+}).and(zod.object({
+  "sortOrder": zod.number(),
+  "isActive": zod.boolean()
+}))
+export const AdminListPlansResponse = zod.array(AdminListPlansResponseItem)
+
+
+/**
+ * @summary Update a plan's price, limits, top-up eligibility, or visibility (admin only)
+ */
+export const AdminUpdatePlanParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const adminUpdatePlanBodyPriceCentsMin = 0;
+
+export const adminUpdatePlanBodyLimitsMinOne = 0;
+
+
+
+export const AdminUpdatePlanBody = zod.object({
+  "name": zod.string().optional(),
+  "priceCents": zod.number().min(adminUpdatePlanBodyPriceCentsMin).optional(),
+  "allowsTopups": zod.boolean().optional(),
+  "sortOrder": zod.number().optional(),
+  "isActive": zod.boolean().optional(),
+  "limits": zod.record(zod.string(), zod.number().min(adminUpdatePlanBodyLimitsMinOne)).optional().describe('Partial map of feature -> new limit; omitted features keep their current limit.')
+})
+
+export const AdminUpdatePlanResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "priceCents": zod.number().describe('Monthly price in cents (0 = free).'),
+  "allowsTopups": zod.boolean(),
+  "limits": zod.array(zod.object({
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
+  "limit": zod.number().describe('Units included per billing period for this feature on this plan.')
+}))
+}).and(zod.object({
+  "sortOrder": zod.number(),
+  "isActive": zod.boolean()
+}))
+
+
+/**
+ * @summary List all credit packs, including inactive ones (admin only)
+ */
+export const AdminListCreditPacksResponseItem = zod.object({
+  "id": zod.number(),
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
+  "label": zod.string(),
+  "amount": zod.number(),
+  "priceCents": zod.number()
+}).and(zod.object({
+  "isActive": zod.boolean()
+}))
+export const AdminListCreditPacksResponse = zod.array(AdminListCreditPacksResponseItem)
+
+
+/**
+ * @summary Create a credit pack (admin only)
+ */
+
+export const adminCreateCreditPackBodyPriceCentsMin = 0;
+
+
+
+export const AdminCreateCreditPackBody = zod.object({
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).optional().describe('A quota-metered AI feature.'),
+  "label": zod.string().optional(),
+  "amount": zod.number().min(1).optional(),
+  "priceCents": zod.number().min(adminCreateCreditPackBodyPriceCentsMin).optional(),
+  "isActive": zod.boolean().optional()
+})
+
+export const AdminCreateCreditPackResponse = zod.object({
+  "id": zod.number(),
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
+  "label": zod.string(),
+  "amount": zod.number(),
+  "priceCents": zod.number()
+}).and(zod.object({
+  "isActive": zod.boolean()
+}))
+
+
+/**
+ * @summary Update a credit pack (admin only)
+ */
+export const AdminUpdateCreditPackParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const adminUpdateCreditPackBodyPriceCentsMin = 0;
+
+
+
+export const AdminUpdateCreditPackBody = zod.object({
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).optional().describe('A quota-metered AI feature.'),
+  "label": zod.string().optional(),
+  "amount": zod.number().min(1).optional(),
+  "priceCents": zod.number().min(adminUpdateCreditPackBodyPriceCentsMin).optional(),
+  "isActive": zod.boolean().optional()
+})
+
+export const AdminUpdateCreditPackResponse = zod.object({
+  "id": zod.number(),
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
+  "label": zod.string(),
+  "amount": zod.number(),
+  "priceCents": zod.number()
+}).and(zod.object({
+  "isActive": zod.boolean()
+}))
+
+
+/**
+ * @summary Delete a credit pack (admin only)
+ */
+export const AdminDeleteCreditPackParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminDeleteCreditPackResponse = zod.void()
+
+
+/**
+ * @summary Business metrics -- subscriber counts, estimated revenue, AI provider cost (admin only)
+ */
+export const AdminGetDashboardResponse = zod.object({
+  "totalUsers": zod.number(),
+  "subscribersByPlan": zod.array(zod.object({
+  "planId": zod.string(),
+  "planName": zod.string(),
+  "count": zod.number()
+})),
+  "estimatedMonthlyRevenueCents": zod.number().describe('Sum of priceCents across active paid subscriptions (approximation — authoritative figures live in Stripe).'),
+  "aiCostMicrosLast30Days": zod.number().describe('Estimated AI provider spend over the last 30 days, in millionths of a dollar.'),
+  "aiCostMicrosAllTime": zod.number(),
+  "usageByFeatureLast30Days": zod.array(zod.object({
+  "feature": zod.enum(['tutorMessage', 'noteGeneration', 'quizGeneration', 'flashcardGeneration', 'oralPractice']).describe('A quota-metered AI feature.'),
+  "count": zod.number()
 }))
 })
 

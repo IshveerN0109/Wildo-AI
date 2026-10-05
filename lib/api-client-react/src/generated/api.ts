@@ -21,8 +21,16 @@ import type {
 
 import type {
   ActivityItem,
+  AdminCreditPack,
+  AdminCreditPackInput,
+  AdminDashboardStats,
+  AdminPlan,
+  AdminPlanUpdateBody,
   AuthUserEnvelope,
   BeginBrowserLoginParams,
+  CheckoutSessionResponse,
+  CreateCheckoutSessionBody,
+  CreditPack,
   FlashcardGenerateInput,
   FlashcardSet,
   FlashcardSetInput,
@@ -56,6 +64,7 @@ import type {
   StudySummary,
   SubscriptionPlan,
   SubscriptionUsage,
+  TopupCheckoutBody,
   UploadUrlRequest,
   UploadUrlResponse
 } from './api.schemas';
@@ -2904,4 +2913,812 @@ export const useSelectSubscriptionPlan = <TError = ErrorType<void>,
       > => {
       return useMutation(getSelectSubscriptionPlanMutationOptions(options));
     }
+
+export const getCreateSubscriptionCheckoutUrl = () => {
+
+
+
+
+  return `/api/subscription/checkout`
+}
+
+/**
+ * @summary Start a Stripe Checkout session to upgrade to a paid plan
+ */
+export const createSubscriptionCheckout = async (createCheckoutSessionBody: CreateCheckoutSessionBody, options?: RequestInit): Promise<CheckoutSessionResponse> => {
+
+  return customFetch<CheckoutSessionResponse>(getCreateSubscriptionCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createCheckoutSessionBody)
+  }
+);}
+
+
+
+
+export const getCreateSubscriptionCheckoutMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSubscriptionCheckout>>, TError,{data: BodyType<CreateCheckoutSessionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSubscriptionCheckout>>, TError,{data: BodyType<CreateCheckoutSessionBody>}, TContext> => {
+
+const mutationKey = ['createSubscriptionCheckout'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSubscriptionCheckout>>, {data: BodyType<CreateCheckoutSessionBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSubscriptionCheckout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSubscriptionCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createSubscriptionCheckout>>>
+    export type CreateSubscriptionCheckoutMutationBody = BodyType<CreateCheckoutSessionBody>
+    export type CreateSubscriptionCheckoutMutationError = ErrorType<void>
+
+    /**
+ * @summary Start a Stripe Checkout session to upgrade to a paid plan
+ */
+export const useCreateSubscriptionCheckout = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSubscriptionCheckout>>, TError,{data: BodyType<CreateCheckoutSessionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSubscriptionCheckout>>,
+        TError,
+        {data: BodyType<CreateCheckoutSessionBody>},
+        TContext
+      > => {
+      return useMutation(getCreateSubscriptionCheckoutMutationOptions(options));
+    }
+
+export const getGetSubscriptionPortalUrl = () => {
+
+
+
+
+  return `/api/subscription/portal`
+}
+
+/**
+ * @summary Get a link to the Stripe-hosted billing portal (manage card, invoices, cancel)
+ */
+export const getSubscriptionPortal = async ( options?: RequestInit): Promise<CheckoutSessionResponse> => {
+
+  return customFetch<CheckoutSessionResponse>(getGetSubscriptionPortalUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSubscriptionPortalQueryKey = () => {
+    return [
+    `/api/subscription/portal`
+    ] as const;
+    }
+
+
+export const getGetSubscriptionPortalQueryOptions = <TData = Awaited<ReturnType<typeof getSubscriptionPortal>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionPortal>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSubscriptionPortalQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptionPortal>>> = ({ signal }) => getSubscriptionPortal({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionPortal>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSubscriptionPortalQueryResult = NonNullable<Awaited<ReturnType<typeof getSubscriptionPortal>>>
+export type GetSubscriptionPortalQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a link to the Stripe-hosted billing portal (manage card, invoices, cancel)
+ */
+
+export function useGetSubscriptionPortal<TData = Awaited<ReturnType<typeof getSubscriptionPortal>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionPortal>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSubscriptionPortalQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListCreditPacksUrl = () => {
+
+
+
+
+  return `/api/subscription/credit-packs`
+}
+
+/**
+ * @summary List purchasable credit top-up packs
+ */
+export const listCreditPacks = async ( options?: RequestInit): Promise<CreditPack[]> => {
+
+  return customFetch<CreditPack[]>(getListCreditPacksUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCreditPacksQueryKey = () => {
+    return [
+    `/api/subscription/credit-packs`
+    ] as const;
+    }
+
+
+export const getListCreditPacksQueryOptions = <TData = Awaited<ReturnType<typeof listCreditPacks>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCreditPacks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCreditPacksQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCreditPacks>>> = ({ signal }) => listCreditPacks({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCreditPacks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCreditPacksQueryResult = NonNullable<Awaited<ReturnType<typeof listCreditPacks>>>
+export type ListCreditPacksQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List purchasable credit top-up packs
+ */
+
+export function useListCreditPacks<TData = Awaited<ReturnType<typeof listCreditPacks>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCreditPacks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCreditPacksQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateTopupCheckoutUrl = () => {
+
+
+
+
+  return `/api/subscription/topup/checkout`
+}
+
+/**
+ * Only allowed when the student's current plan has allowsTopups=true.
+ * @summary Start a Stripe Checkout session to purchase a credit pack
+ */
+export const createTopupCheckout = async (topupCheckoutBody: TopupCheckoutBody, options?: RequestInit): Promise<CheckoutSessionResponse> => {
+
+  return customFetch<CheckoutSessionResponse>(getCreateTopupCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(topupCheckoutBody)
+  }
+);}
+
+
+
+
+export const getCreateTopupCheckoutMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTopupCheckout>>, TError,{data: BodyType<TopupCheckoutBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createTopupCheckout>>, TError,{data: BodyType<TopupCheckoutBody>}, TContext> => {
+
+const mutationKey = ['createTopupCheckout'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTopupCheckout>>, {data: BodyType<TopupCheckoutBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createTopupCheckout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateTopupCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createTopupCheckout>>>
+    export type CreateTopupCheckoutMutationBody = BodyType<TopupCheckoutBody>
+    export type CreateTopupCheckoutMutationError = ErrorType<void>
+
+    /**
+ * @summary Start a Stripe Checkout session to purchase a credit pack
+ */
+export const useCreateTopupCheckout = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTopupCheckout>>, TError,{data: BodyType<TopupCheckoutBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createTopupCheckout>>,
+        TError,
+        {data: BodyType<TopupCheckoutBody>},
+        TContext
+      > => {
+      return useMutation(getCreateTopupCheckoutMutationOptions(options));
+    }
+
+export const getAdminListPlansUrl = () => {
+
+
+
+
+  return `/api/admin/plans`
+}
+
+/**
+ * @summary List all plans, including inactive ones (admin only)
+ */
+export const adminListPlans = async ( options?: RequestInit): Promise<AdminPlan[]> => {
+
+  return customFetch<AdminPlan[]>(getAdminListPlansUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminListPlansQueryKey = () => {
+    return [
+    `/api/admin/plans`
+    ] as const;
+    }
+
+
+export const getAdminListPlansQueryOptions = <TData = Awaited<ReturnType<typeof adminListPlans>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListPlans>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListPlansQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListPlans>>> = ({ signal }) => adminListPlans({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListPlans>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminListPlansQueryResult = NonNullable<Awaited<ReturnType<typeof adminListPlans>>>
+export type AdminListPlansQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all plans, including inactive ones (admin only)
+ */
+
+export function useAdminListPlans<TData = Awaited<ReturnType<typeof adminListPlans>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListPlans>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminListPlansQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAdminUpdatePlanUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/plans/${id}`
+}
+
+/**
+ * @summary Update a plan's price, limits, top-up eligibility, or visibility (admin only)
+ */
+export const adminUpdatePlan = async (id: string,
+    adminPlanUpdateBody: AdminPlanUpdateBody, options?: RequestInit): Promise<AdminPlan> => {
+
+  return customFetch<AdminPlan>(getAdminUpdatePlanUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminPlanUpdateBody)
+  }
+);}
+
+
+
+
+export const getAdminUpdatePlanMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdatePlan>>, TError,{id: string;data: BodyType<AdminPlanUpdateBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminUpdatePlan>>, TError,{id: string;data: BodyType<AdminPlanUpdateBody>}, TContext> => {
+
+const mutationKey = ['adminUpdatePlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminUpdatePlan>>, {id: string;data: BodyType<AdminPlanUpdateBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminUpdatePlan(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminUpdatePlanMutationResult = NonNullable<Awaited<ReturnType<typeof adminUpdatePlan>>>
+    export type AdminUpdatePlanMutationBody = BodyType<AdminPlanUpdateBody>
+    export type AdminUpdatePlanMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a plan's price, limits, top-up eligibility, or visibility (admin only)
+ */
+export const useAdminUpdatePlan = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdatePlan>>, TError,{id: string;data: BodyType<AdminPlanUpdateBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminUpdatePlan>>,
+        TError,
+        {id: string;data: BodyType<AdminPlanUpdateBody>},
+        TContext
+      > => {
+      return useMutation(getAdminUpdatePlanMutationOptions(options));
+    }
+
+export const getAdminListCreditPacksUrl = () => {
+
+
+
+
+  return `/api/admin/credit-packs`
+}
+
+/**
+ * @summary List all credit packs, including inactive ones (admin only)
+ */
+export const adminListCreditPacks = async ( options?: RequestInit): Promise<AdminCreditPack[]> => {
+
+  return customFetch<AdminCreditPack[]>(getAdminListCreditPacksUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminListCreditPacksQueryKey = () => {
+    return [
+    `/api/admin/credit-packs`
+    ] as const;
+    }
+
+
+export const getAdminListCreditPacksQueryOptions = <TData = Awaited<ReturnType<typeof adminListCreditPacks>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListCreditPacks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListCreditPacksQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListCreditPacks>>> = ({ signal }) => adminListCreditPacks({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListCreditPacks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminListCreditPacksQueryResult = NonNullable<Awaited<ReturnType<typeof adminListCreditPacks>>>
+export type AdminListCreditPacksQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all credit packs, including inactive ones (admin only)
+ */
+
+export function useAdminListCreditPacks<TData = Awaited<ReturnType<typeof adminListCreditPacks>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListCreditPacks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminListCreditPacksQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAdminCreateCreditPackUrl = () => {
+
+
+
+
+  return `/api/admin/credit-packs`
+}
+
+/**
+ * @summary Create a credit pack (admin only)
+ */
+export const adminCreateCreditPack = async (adminCreditPackInput: AdminCreditPackInput, options?: RequestInit): Promise<AdminCreditPack> => {
+
+  return customFetch<AdminCreditPack>(getAdminCreateCreditPackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminCreditPackInput)
+  }
+);}
+
+
+
+
+export const getAdminCreateCreditPackMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminCreateCreditPack>>, TError,{data: BodyType<AdminCreditPackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminCreateCreditPack>>, TError,{data: BodyType<AdminCreditPackInput>}, TContext> => {
+
+const mutationKey = ['adminCreateCreditPack'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminCreateCreditPack>>, {data: BodyType<AdminCreditPackInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminCreateCreditPack(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminCreateCreditPackMutationResult = NonNullable<Awaited<ReturnType<typeof adminCreateCreditPack>>>
+    export type AdminCreateCreditPackMutationBody = BodyType<AdminCreditPackInput>
+    export type AdminCreateCreditPackMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a credit pack (admin only)
+ */
+export const useAdminCreateCreditPack = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminCreateCreditPack>>, TError,{data: BodyType<AdminCreditPackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminCreateCreditPack>>,
+        TError,
+        {data: BodyType<AdminCreditPackInput>},
+        TContext
+      > => {
+      return useMutation(getAdminCreateCreditPackMutationOptions(options));
+    }
+
+export const getAdminUpdateCreditPackUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/credit-packs/${id}`
+}
+
+/**
+ * @summary Update a credit pack (admin only)
+ */
+export const adminUpdateCreditPack = async (id: number,
+    adminCreditPackInput: AdminCreditPackInput, options?: RequestInit): Promise<AdminCreditPack> => {
+
+  return customFetch<AdminCreditPack>(getAdminUpdateCreditPackUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminCreditPackInput)
+  }
+);}
+
+
+
+
+export const getAdminUpdateCreditPackMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateCreditPack>>, TError,{id: number;data: BodyType<AdminCreditPackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminUpdateCreditPack>>, TError,{id: number;data: BodyType<AdminCreditPackInput>}, TContext> => {
+
+const mutationKey = ['adminUpdateCreditPack'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminUpdateCreditPack>>, {id: number;data: BodyType<AdminCreditPackInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminUpdateCreditPack(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminUpdateCreditPackMutationResult = NonNullable<Awaited<ReturnType<typeof adminUpdateCreditPack>>>
+    export type AdminUpdateCreditPackMutationBody = BodyType<AdminCreditPackInput>
+    export type AdminUpdateCreditPackMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a credit pack (admin only)
+ */
+export const useAdminUpdateCreditPack = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateCreditPack>>, TError,{id: number;data: BodyType<AdminCreditPackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminUpdateCreditPack>>,
+        TError,
+        {id: number;data: BodyType<AdminCreditPackInput>},
+        TContext
+      > => {
+      return useMutation(getAdminUpdateCreditPackMutationOptions(options));
+    }
+
+export const getAdminDeleteCreditPackUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/credit-packs/${id}`
+}
+
+/**
+ * @summary Delete a credit pack (admin only)
+ */
+export const adminDeleteCreditPack = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getAdminDeleteCreditPackUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getAdminDeleteCreditPackMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminDeleteCreditPack>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminDeleteCreditPack>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['adminDeleteCreditPack'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminDeleteCreditPack>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  adminDeleteCreditPack(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminDeleteCreditPackMutationResult = NonNullable<Awaited<ReturnType<typeof adminDeleteCreditPack>>>
+
+    export type AdminDeleteCreditPackMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a credit pack (admin only)
+ */
+export const useAdminDeleteCreditPack = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminDeleteCreditPack>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminDeleteCreditPack>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getAdminDeleteCreditPackMutationOptions(options));
+    }
+
+export const getAdminGetDashboardUrl = () => {
+
+
+
+
+  return `/api/admin/dashboard`
+}
+
+/**
+ * @summary Business metrics -- subscriber counts, estimated revenue, AI provider cost (admin only)
+ */
+export const adminGetDashboard = async ( options?: RequestInit): Promise<AdminDashboardStats> => {
+
+  return customFetch<AdminDashboardStats>(getAdminGetDashboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminGetDashboardQueryKey = () => {
+    return [
+    `/api/admin/dashboard`
+    ] as const;
+    }
+
+
+export const getAdminGetDashboardQueryOptions = <TData = Awaited<ReturnType<typeof adminGetDashboard>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminGetDashboardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetDashboard>>> = ({ signal }) => adminGetDashboard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminGetDashboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminGetDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof adminGetDashboard>>>
+export type AdminGetDashboardQueryError = ErrorType<void>
+
+
+/**
+ * @summary Business metrics -- subscriber counts, estimated revenue, AI provider cost (admin only)
+ */
+
+export function useAdminGetDashboard<TData = Awaited<ReturnType<typeof adminGetDashboard>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminGetDashboardQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

@@ -699,6 +699,230 @@ paths:
         "400":
           description: Unknown plan id
 
+  /subscription/checkout:
+    post:
+      operationId: createSubscriptionCheckout
+      tags: [subscription]
+      summary: Start a Stripe Checkout session to upgrade to a paid plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCheckoutSessionBody"
+      responses:
+        "200":
+          description: Checkout URL to redirect the student to
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSessionResponse"
+        "400":
+          description: Unknown or free plan id
+        "503":
+          description: Stripe is not configured
+
+  /subscription/portal:
+    get:
+      operationId: getSubscriptionPortal
+      tags: [subscription]
+      summary: Get a link to the Stripe-hosted billing portal (manage card, invoices, cancel)
+      responses:
+        "200":
+          description: Portal URL to redirect the student to
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSessionResponse"
+        "400":
+          description: Student has no Stripe customer yet (never checked out)
+        "503":
+          description: Stripe is not configured
+
+  /subscription/credit-packs:
+    get:
+      operationId: listCreditPacks
+      tags: [subscription]
+      summary: List purchasable credit top-up packs
+      responses:
+        "200":
+          description: Active credit packs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditPack"
+
+  /subscription/topup/checkout:
+    post:
+      operationId: createTopupCheckout
+      tags: [subscription]
+      summary: Start a Stripe Checkout session to purchase a credit pack
+      description: Only allowed when the student's current plan has allowsTopups=true.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TopupCheckoutBody"
+      responses:
+        "200":
+          description: Checkout URL to redirect the student to
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSessionResponse"
+        "400":
+          description: Unknown credit pack id
+        "403":
+          description: Current plan does not allow purchasing top-ups
+        "503":
+          description: Stripe is not configured
+
+  /admin/plans:
+    get:
+      operationId: adminListPlans
+      tags: [admin]
+      summary: List all plans, including inactive ones (admin only)
+      responses:
+        "200":
+          description: All plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminPlan"
+        "403":
+          description: Admin access required
+
+  /admin/plans/{id}:
+    put:
+      operationId: adminUpdatePlan
+      tags: [admin]
+      summary: Update a plan's price, limits, top-up eligibility, or visibility (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminPlanUpdateBody"
+      responses:
+        "200":
+          description: Updated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPlan"
+        "403":
+          description: Admin access required
+        "404":
+          description: Unknown plan id
+
+  /admin/credit-packs:
+    get:
+      operationId: adminListCreditPacks
+      tags: [admin]
+      summary: List all credit packs, including inactive ones (admin only)
+      responses:
+        "200":
+          description: All credit packs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminCreditPack"
+        "403":
+          description: Admin access required
+    post:
+      operationId: adminCreateCreditPack
+      tags: [admin]
+      summary: Create a credit pack (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreditPackInput"
+      responses:
+        "201":
+          description: Created credit pack
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCreditPack"
+        "403":
+          description: Admin access required
+
+  /admin/credit-packs/{id}:
+    put:
+      operationId: adminUpdateCreditPack
+      tags: [admin]
+      summary: Update a credit pack (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreditPackInput"
+      responses:
+        "200":
+          description: Updated credit pack
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCreditPack"
+        "403":
+          description: Admin access required
+        "404":
+          description: Unknown credit pack id
+    delete:
+      operationId: adminDeleteCreditPack
+      tags: [admin]
+      summary: Delete a credit pack (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Admin access required
+        "404":
+          description: Unknown credit pack id
+
+  /admin/dashboard:
+    get:
+      operationId: adminGetDashboard
+      tags: [admin]
+      summary: Business metrics -- subscriber counts, estimated revenue, AI provider cost (admin only)
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboardStats"
+        "403":
+          description: Admin access required
+
 components:
   parameters:
     AuthorizationSessionHeader:
@@ -718,7 +942,7 @@ components:
   schemas:
     AuthUser:
       type: object
-      required: [id, email, firstName, lastName, profileImageUrl]
+      required: [id, email, firstName, lastName, profileImageUrl, isAdmin]
       properties:
         id:
           type: string
@@ -731,6 +955,8 @@ components:
           type: ["string", "null"]
         profileImageUrl:
           type: ["string", "null"]
+        isAdmin:
+          type: boolean
     AuthUserEnvelope:
       type: object
       required: [user]
@@ -1544,6 +1770,9 @@ components:
         currentPeriodEnd:
           type: string
           format: date-time
+        allowsTopups:
+          type: boolean
+          description: Whether the student's current plan permits purchasing extra credit packs.
         usage:
           type: array
           items:
@@ -1554,6 +1783,7 @@ components:
         - status
         - currentPeriodStart
         - currentPeriodEnd
+        - allowsTopups
         - usage
 
     SubscriptionPlanLimit:
@@ -1575,12 +1805,151 @@ components:
           type: string
         priceCents:
           type: integer
-          description: Display-only monthly price in cents (0 = free). Nothing is charged yet.
+          description: Monthly price in cents (0 = free).
+        allowsTopups:
+          type: boolean
         limits:
           type: array
           items:
             $ref: "#/components/schemas/SubscriptionPlanLimit"
-      required: [id, name, priceCents, limits]
+      required: [id, name, priceCents, allowsTopups, limits]
+
+    AdminPlan:
+      allOf:
+        - $ref: "#/components/schemas/SubscriptionPlan"
+        - type: object
+          properties:
+            sortOrder:
+              type: integer
+            isActive:
+              type: boolean
+          required: [sortOrder, isActive]
+
+    AdminPlanUpdateBody:
+      type: object
+      properties:
+        name:
+          type: string
+        priceCents:
+          type: integer
+          minimum: 0
+        allowsTopups:
+          type: boolean
+        sortOrder:
+          type: integer
+        isActive:
+          type: boolean
+        limits:
+          type: object
+          description: Partial map of feature -> new limit; omitted features keep their current limit.
+          additionalProperties:
+            type: integer
+            minimum: 0
+
+    CreditPack:
+      type: object
+      properties:
+        id:
+          type: integer
+        feature:
+          $ref: "#/components/schemas/SubscriptionFeature"
+        label:
+          type: string
+        amount:
+          type: integer
+        priceCents:
+          type: integer
+      required: [id, feature, label, amount, priceCents]
+
+    AdminCreditPack:
+      allOf:
+        - $ref: "#/components/schemas/CreditPack"
+        - type: object
+          properties:
+            isActive:
+              type: boolean
+          required: [isActive]
+
+    AdminCreditPackInput:
+      type: object
+      properties:
+        feature:
+          $ref: "#/components/schemas/SubscriptionFeature"
+        label:
+          type: string
+        amount:
+          type: integer
+          minimum: 1
+        priceCents:
+          type: integer
+          minimum: 0
+        isActive:
+          type: boolean
+
+    CreateCheckoutSessionBody:
+      type: object
+      properties:
+        planId:
+          type: string
+      required: [planId]
+
+    TopupCheckoutBody:
+      type: object
+      properties:
+        creditPackId:
+          type: integer
+      required: [creditPackId]
+
+    CheckoutSessionResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+      required: [url]
+
+    AdminDashboardStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        subscribersByPlan:
+          type: array
+          items:
+            type: object
+            properties:
+              planId:
+                type: string
+              planName:
+                type: string
+              count:
+                type: integer
+            required: [planId, planName, count]
+        estimatedMonthlyRevenueCents:
+          type: integer
+          description: Sum of priceCents across active paid subscriptions (approximation — authoritative figures live in Stripe).
+        aiCostMicrosLast30Days:
+          type: integer
+          description: Estimated AI provider spend over the last 30 days, in millionths of a dollar.
+        aiCostMicrosAllTime:
+          type: integer
+        usageByFeatureLast30Days:
+          type: array
+          items:
+            type: object
+            properties:
+              feature:
+                $ref: "#/components/schemas/SubscriptionFeature"
+              count:
+                type: integer
+            required: [feature, count]
+      required:
+        - totalUsers
+        - subscribersByPlan
+        - estimatedMonthlyRevenueCents
+        - aiCostMicrosLast30Days
+        - aiCostMicrosAllTime
+        - usageByFeatureLast30Days
 
     SelectPlanBody:
       type: object

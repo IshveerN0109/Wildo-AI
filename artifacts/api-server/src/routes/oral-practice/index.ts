@@ -4,11 +4,12 @@ import {
   speechToText,
   textToSpeech,
 } from "@workspace/integrations-openai-ai-server/audio";
-import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
+import { openai, CHAT_MODEL, ACTIVE_PROVIDER } from "@workspace/integrations-openai-ai-server";
 import { EvaluateOralPracticeBody, EvaluateOralPracticeResponse } from "@workspace/api-zod";
 import { requireAuth } from "../../lib/require-auth";
 import { requireQuota } from "../../lib/require-quota";
 import { safeErrorDetails } from "../../lib/safe-logging";
+import { recordAiUsage } from "../../lib/aiCost";
 
 const router: IRouter = Router();
 router.use(requireAuth);
@@ -354,6 +355,14 @@ ${transcript}`,
       ],
     });
 
+    await recordAiUsage({
+      userId: req.user!.id,
+      feature: "oralPractice",
+      provider: ACTIVE_PROVIDER,
+      model: CHAT_MODEL,
+      promptTokens: evaluationResponse.usage?.prompt_tokens ?? 0,
+      completionTokens: evaluationResponse.usage?.completion_tokens ?? 0,
+    });
     const raw = evaluationResponse.choices[0]?.message?.content ?? "{}";
     const evaluation = JSON.parse(raw) as {
       examinerReply?: string;

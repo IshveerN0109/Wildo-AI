@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User, Zap, Flame, Mic, Menu, X, Star, Coins } from "lucide-react";
+import { BookOpen, Brain, LayoutDashboard, Library, Settings, ChevronDown, GraduationCap, LogIn, LogOut, User, Zap, Flame, Mic, Menu, X, Star, Coins, Shield } from "lucide-react";
 import { useGetStreak, useGetSubscriptionUsage, getGetSubscriptionUsageQueryKey, type SubscriptionFeature } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStudent } from "@/contexts/StudentContext";
@@ -86,6 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { href: "/revision", label: "Revision Mode", icon: GraduationCap },
     { href: "/oral-practice", label: "Oral English practice", icon: Mic },
     { href: "/profile", label: "My profile", icon: User },
+    ...(user?.isAdmin ? [{ href: "/admin", label: "Admin", icon: Shield }] : []),
   ];
 
   const displayName = user

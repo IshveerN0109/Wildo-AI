@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, notesTable } from "@workspace/db";
-import { openai, CHAT_MODEL } from "@workspace/integrations-openai-ai-server";
+import { openai, CHAT_MODEL, ACTIVE_PROVIDER } from "@workspace/integrations-openai-ai-server";
 import { requireAuth } from "../../lib/require-auth";
 import { requireQuota } from "../../lib/require-quota";
+import { recordAiUsage } from "../../lib/aiCost";
 import {
   ListNotesQueryParams,
   CreateNoteBody,
@@ -157,6 +158,14 @@ ACCURACY RULES:
   });
 
   const content = completion.choices[0]?.message?.content ?? "";
+  await recordAiUsage({
+    userId: req.user!.id,
+    feature: "noteGeneration",
+    provider: ACTIVE_PROVIDER,
+    model: CHAT_MODEL,
+    promptTokens: completion.usage?.prompt_tokens ?? 0,
+    completionTokens: completion.usage?.completion_tokens ?? 0,
+  });
   const title = isChapterSummary
     ? `${topic} — ${subject} Chapter Summary (${level})`
     : `${topic} — ${subject} (${level})`;

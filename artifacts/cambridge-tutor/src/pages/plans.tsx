@@ -1,10 +1,15 @@
 import { Link } from "wouter";
-import { ArrowLeft, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Sparkles, CreditCard, Zap } from "lucide-react";
 import {
   useListSubscriptionPlans,
   useGetSubscriptionUsage,
   useSelectSubscriptionPlan,
+  useCreateSubscriptionCheckout,
+  useGetSubscriptionPortal,
+  useListCreditPacks,
+  useCreateTopupCheckout,
   getGetSubscriptionUsageQueryKey,
+  getGetSubscriptionPortalQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -15,27 +20,71 @@ function formatPrice(cents: number) {
   return cents === 0 ? "Free" : `$${(cents / 100).toFixed(2)}`;
 }
 
+function paymentsUnavailableToast(toast: ReturnType<typeof useToast>["toast"]) {
+  toast({
+    title: "Payments aren't set up yet",
+    description: "Billing isn't configured for Wildo yet — check back soon.",
+    variant: "destructive",
+  });
+}
+
 export default function Plans() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: plans, isLoading: plansLoading } = useListSubscriptionPlans();
   const { data: subscription, isLoading: subscriptionLoading } = useGetSubscriptionUsage();
+  const { data: creditPacks } = useListCreditPacks();
   const selectPlan = useSelectSubscriptionPlan();
+  const createCheckout = useCreateSubscriptionCheckout();
+  const getPortal = useGetSubscriptionPortal({ query: { enabled: false, queryKey: getGetSubscriptionPortalQueryKey() } });
+  const createTopupCheckout = useCreateTopupCheckout();
 
-  function handleSelect(planId: string, planName: string) {
+  function handleSelect(plan: NonNullable<typeof plans>[number]) {
+    if (plan.priceCents > 0) {
+      createCheckout.mutate(
+        { data: { planId: plan.id } },
+        {
+          onSuccess: (data) => { window.location.href = data.url; },
+          onError: (err: any) => {
+            if (err?.status === 503) paymentsUnavailableToast(toast);
+            else toast({ title: "Couldn't start checkout", description: "Something went wrong. Please try again.", variant: "destructive" });
+          },
+        },
+      );
+      return;
+    }
+
     selectPlan.mutate(
-      { data: { planId } },
+      { data: { planId: plan.id } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetSubscriptionUsageQueryKey() });
-          toast({ title: `You're now on the ${planName} plan` });
+          toast({ title: `You're now on the ${plan.name} plan` });
         },
         onError: () => {
-          toast({
-            title: "Couldn't switch plans",
-            description: "Something went wrong. Please try again.",
-            variant: "destructive",
-          });
+          toast({ title: "Couldn't switch plans", description: "Something went wrong. Please try again.", variant: "destructive" });
+        },
+      },
+    );
+  }
+
+  async function handleManageBilling() {
+    const result = await getPortal.refetch();
+    if (result.data?.url) {
+      window.location.href = result.data.url;
+    } else {
+      paymentsUnavailableToast(toast);
+    }
+  }
+
+  function handleBuyPack(creditPackId: number) {
+    createTopupCheckout.mutate(
+      { data: { creditPackId } },
+      {
+        onSuccess: (data) => { window.location.href = data.url; },
+        onError: (err: any) => {
+          if (err?.status === 503) paymentsUnavailableToast(toast);
+          else toast({ title: "Couldn't start checkout", description: "Something went wrong. Please try again.", variant: "destructive" });
         },
       },
     );
@@ -58,13 +107,13 @@ export default function Plans() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-5 sm:grid-cols-2 max-w-3xl">
-          {[1, 2].map((i) => (
+        <div className="grid gap-5 sm:grid-cols-3 max-w-4xl">
+          {[1, 2, 3].map((i) => (
             <div key={i} className="h-80 animate-pulse rounded-2xl border bg-muted" />
           ))}
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 max-w-3xl">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl">
           {plans?.map((plan) => {
             const isCurrent = subscription?.planId === plan.id;
             return (
@@ -78,21 +127,10 @@ export default function Plans() {
                   <h2 className="font-serif text-xl font-bold">{plan.name}</h2>
                   {plan.priceCents > 0 && <Sparkles className="h-4 w-4 text-primary" />}
                 </div>
-                {plan.priceCents > 0 ? (
-                  <div className="mt-1">
-                    <p className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold">Free</span>
-                      <span className="text-sm text-muted-foreground line-through">{formatPrice(plan.priceCents)}/mo</span>
-                    </p>
-                    <span className="mt-1 inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                      Free during beta — no card required
-                    </span>
-                  </div>
-                ) : (
-                  <p className="mt-1">
-                    <span className="text-2xl font-bold">{formatPrice(plan.priceCents)}</span>
-                  </p>
-                )}
+                <p className="mt-1">
+                  <span className="text-2xl font-bold">{formatPrice(plan.priceCents)}</span>
+                  {plan.priceCents > 0 && <span className="text-sm text-muted-foreground"> /month</span>}
+                </p>
                 <ul className="mt-5 flex-1 space-y-2.5">
                   {plan.limits.map((l) => (
                     <li key={l.feature} className="flex items-start gap-2 text-sm">
@@ -102,14 +140,24 @@ export default function Plans() {
                       </span>
                     </li>
                   ))}
+                  {plan.allowsTopups && (
+                    <li className="flex items-start gap-2 text-sm text-primary">
+                      <Zap className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>Buy extra credits anytime</span>
+                    </li>
+                  )}
                 </ul>
                 <Button
                   className="mt-6 w-full"
                   variant={isCurrent ? "secondary" : "default"}
-                  disabled={isCurrent || selectPlan.isPending}
-                  onClick={() => handleSelect(plan.id, plan.name)}
+                  disabled={isCurrent || selectPlan.isPending || createCheckout.isPending}
+                  onClick={() => handleSelect(plan)}
                 >
-                  {isCurrent ? "Current plan" : selectPlan.isPending ? "Switching…" : `Choose ${plan.name}`}
+                  {isCurrent
+                    ? "Current plan"
+                    : selectPlan.isPending || createCheckout.isPending
+                      ? "Redirecting…"
+                      : `Choose ${plan.name}`}
                 </Button>
               </div>
             );
@@ -117,8 +165,36 @@ export default function Plans() {
         </div>
       )}
 
+      {subscription && subscription.planId !== "free" && (
+        <Button variant="outline" size="sm" onClick={handleManageBilling} disabled={getPortal.isFetching}>
+          <CreditCard className="w-4 h-4 mr-2" /> Manage billing & payment method
+        </Button>
+      )}
+
+      {subscription?.allowsTopups && creditPacks && creditPacks.length > 0 && (
+        <div className="max-w-4xl space-y-3 pt-2">
+          <h2 className="text-lg font-bold font-serif">Need more this month?</h2>
+          <p className="text-sm text-muted-foreground">Your plan lets you top up credits for any feature, on top of your monthly limit.</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {creditPacks.map((pack) => (
+              <div key={pack.id} className="flex items-center justify-between rounded-xl border bg-card px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium">{pack.label}</p>
+                  <p className="text-xs text-muted-foreground">
+                    +{pack.amount} {SUBSCRIPTION_FEATURE_LABELS[pack.feature] ?? pack.feature}
+                  </p>
+                </div>
+                <Button size="sm" disabled={createTopupCheckout.isPending} onClick={() => handleBuyPack(pack.id)}>
+                  {formatPrice(pack.priceCents)}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <p className="max-w-3xl text-xs text-muted-foreground">
-        No card required — plan changes take effect immediately and apply for the rest of your current billing period.
+        Plan changes take effect immediately. Paid plans are billed monthly via Stripe — cancel anytime from "Manage billing".
       </p>
     </div>
   );

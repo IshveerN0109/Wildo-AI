@@ -14,5 +14,7 @@ export interface SubscriptionUsage {
   status: SubscriptionUsageStatus;
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
+  /** Whether the student's current plan permits purchasing extra credit packs. */
+  allowsTopups: boolean;
   usage: SubscriptionFeatureUsage[];
 }

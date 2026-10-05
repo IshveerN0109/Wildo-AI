@@ -1,6 +1,14 @@
 export const LEVELS = ["O Level", "A Level"] as const;
 export type Level = (typeof LEVELS)[number];
 
+export const FEATURES = [
+  "tutorMessage",
+  "noteGeneration",
+  "quizGeneration",
+  "flashcardGeneration",
+  "oralPractice",
+] as const;
+
 export const SUBSCRIPTION_FEATURE_LABELS: Record<string, string> = {
   tutorMessage: "AI Tutor questions",
   noteGeneration: "AI note generations",

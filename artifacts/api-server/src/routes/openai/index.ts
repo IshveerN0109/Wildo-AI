@@ -5,14 +5,17 @@ import { recordQuestionForUser } from "../streaks";
 import {
   openai,
   CHAT_MODEL,
+  ACTIVE_PROVIDER,
   visionOpenai,
   VISION_MODEL,
+  ACTIVE_VISION_PROVIDER,
   type ChatCompletionMessageParam,
   type ChatCompletionContentPart,
 } from "@workspace/integrations-openai-ai-server";
 import { requireAuth } from "../../lib/require-auth";
 import { requireQuota } from "../../lib/require-quota";
 import { resolveAttachments, hasImages, buildAttachmentPromptText } from "../../lib/attachments";
+import { recordAiUsage } from "../../lib/aiCost";
 import {
   CreateOpenaiConversationBody,
   GetOpenaiConversationParams,
@@ -429,15 +432,27 @@ router.post("/openai/conversations/:id/messages", requireQuota("tutorMessage"), 
     max_tokens: 8192,
     messages: chatMessages,
     stream: true,
+    stream_options: { include_usage: true },
   });
 
+  let usage: { prompt_tokens?: number; completion_tokens?: number } | null = null;
   for await (const chunk of stream) {
     const content = chunk.choices[0]?.delta?.content;
     if (content) {
       fullResponse += content;
       res.write(`data: ${JSON.stringify({ content })}\n\n`);
     }
+    if (chunk.usage) usage = chunk.usage;
   }
+
+  await recordAiUsage({
+    userId: req.user!.id,
+    feature: "tutorMessage",
+    provider: useVision ? ACTIVE_VISION_PROVIDER : ACTIVE_PROVIDER,
+    model,
+    promptTokens: usage?.prompt_tokens ?? 0,
+    completionTokens: usage?.completion_tokens ?? 0,
+  });
 
   await db.insert(messages).values({
     conversationId: params.data.id,
@@ -490,14 +505,26 @@ router.post("/openai/revision-stream", requireQuota("tutorMessage"), async (req,
     max_tokens: 8192,
     messages: chatMessages,
     stream: true,
+    stream_options: { include_usage: true },
   });
 
+  let usage: { prompt_tokens?: number; completion_tokens?: number } | null = null;
   for await (const chunk of stream) {
     const content = chunk.choices[0]?.delta?.content;
     if (content) {
       res.write(`data: ${JSON.stringify({ content })}\n\n`);
     }
+    if (chunk.usage) usage = chunk.usage;
   }
+
+  await recordAiUsage({
+    userId: req.user!.id,
+    feature: "tutorMessage",
+    provider: ACTIVE_PROVIDER,
+    model: CHAT_MODEL,
+    promptTokens: usage?.prompt_tokens ?? 0,
+    completionTokens: usage?.completion_tokens ?? 0,
+  });
 
   res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
   res.end();

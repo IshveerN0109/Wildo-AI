@@ -15,6 +15,7 @@ export interface AuthUser {
   lastName: string | null;
   /** @nullable */
   profileImageUrl: string | null;
+  isAdmin: boolean;
 }
 
 export interface AuthUserEnvelope {
@@ -506,6 +507,8 @@ export interface SubscriptionUsage {
   status: SubscriptionUsageStatus;
   currentPeriodStart: string;
   currentPeriodEnd: string;
+  /** Whether the student's current plan permits purchasing extra credit packs. */
+  allowsTopups: boolean;
   usage: SubscriptionFeatureUsage[];
 }
 
@@ -518,9 +521,87 @@ export interface SubscriptionPlanLimit {
 export interface SubscriptionPlan {
   id: string;
   name: string;
-  /** Display-only monthly price in cents (0 = free). Nothing is charged yet. */
+  /** Monthly price in cents (0 = free). */
   priceCents: number;
+  allowsTopups: boolean;
   limits: SubscriptionPlanLimit[];
+}
+
+export type AdminPlan = SubscriptionPlan & {
+  sortOrder: number;
+  isActive: boolean;
+};
+
+/**
+ * Partial map of feature -> new limit; omitted features keep their current limit.
+ */
+export type AdminPlanUpdateBodyLimits = {[key: string]: number};
+
+export interface AdminPlanUpdateBody {
+  name?: string;
+  /** @minimum 0 */
+  priceCents?: number;
+  allowsTopups?: boolean;
+  sortOrder?: number;
+  isActive?: boolean;
+  /** Partial map of feature -> new limit; omitted features keep their current limit. */
+  limits?: AdminPlanUpdateBodyLimits;
+}
+
+export interface CreditPack {
+  id: number;
+  feature: SubscriptionFeature;
+  label: string;
+  amount: number;
+  priceCents: number;
+}
+
+export type AdminCreditPack = CreditPack & {
+  isActive: boolean;
+};
+
+export interface AdminCreditPackInput {
+  feature?: SubscriptionFeature;
+  label?: string;
+  /** @minimum 1 */
+  amount?: number;
+  /** @minimum 0 */
+  priceCents?: number;
+  isActive?: boolean;
+}
+
+export interface CreateCheckoutSessionBody {
+  planId: string;
+}
+
+export interface TopupCheckoutBody {
+  creditPackId: number;
+}
+
+export interface CheckoutSessionResponse {
+  url: string;
+}
+
+export type AdminDashboardStatsSubscribersByPlanItem = {
+  planId: string;
+  planName: string;
+  count: number;
+};
+
+export type AdminDashboardStatsUsageByFeatureLast30DaysItem = {
+  feature: SubscriptionFeature;
+  count: number;
+};
+
+export interface AdminDashboardStats {
+  totalUsers: number;
+  subscribersByPlan: AdminDashboardStatsSubscribersByPlanItem[];
+  /** Sum of priceCents across active paid subscriptions (approximation — authoritative figures live in Stripe). */
+  estimatedMonthlyRevenueCents: number;
+  /** Estimated AI provider spend over the last 30 days, in millionths of a dollar. */
+  aiCostMicrosLast30Days: number;
+  aiCostMicrosAllTime: number;
+  usageByFeatureLast30Days: AdminDashboardStatsUsageByFeatureLast30DaysItem[];
 }
 
 export interface SelectPlanBody {

@@ -5,6 +5,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
+import { handleStripeWebhook } from "./routes/webhooks/stripe";
 
 const app: Express = express();
 
@@ -29,6 +30,13 @@ app.use(
 );
 app.use(cors({ credentials: true, origin: true }));
 app.use(cookieParser());
+
+// Stripe signature verification needs the raw request body, so this is
+// registered before express.json() parses it — must stay above that line.
+app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), (req, res) => {
+  void handleStripeWebhook(req, res);
+});
+
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(authMiddleware);

@@ -24,6 +24,7 @@ import Quiz from "@/pages/quiz";
 import OralPractice from "@/pages/oral-practice";
 import Profile from "@/pages/profile";
 import Plans from "@/pages/plans";
+import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,19 @@ function SignInRequired({ onExploreAsGuest }: { onExploreAsGuest: () => void }) 
       </div>
     </div>
   );
+}
+
+function AdminRoute() {
+  const { user } = useAuth();
+  if (!user?.isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-2 text-center text-muted-foreground">
+        <p className="font-semibold text-foreground">Admin access required</p>
+        <p className="text-sm">This page is only available to Wildo admins.</p>
+      </div>
+    );
+  }
+  return <Admin />;
 }
 
 function Router({
@@ -112,6 +126,7 @@ function Router({
         <Route path="/oral-practice" component={OralPractice} />
         <Route path="/profile" component={Profile} />
         <Route path="/plans" component={Plans} />
+        <Route path="/admin" component={AdminRoute} />
         <Route path="/terms" component={Terms} />
         <Route component={NotFound} />
       </Switch>

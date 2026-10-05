@@ -57,6 +57,9 @@ const CHAT_PROVIDERS = {
 
 const provider = (process.env.AI_PROVIDER as ChatProvider | undefined) ?? "deepseek";
 
+/** Which provider the default `openai` client actually talks to — for cost-tracking/logging, not routing logic. */
+export const ACTIVE_PROVIDER: ChatProvider = provider;
+
 // Which provider handles messages that include an image attachment. The main
 // AI_PROVIDER may be deepseek (cheap, but text-only), so vision requests fall
 // back to this one instead. Defaults to "openai"; set AI_VISION_PROVIDER=gemini
@@ -80,6 +83,9 @@ export const VISION_MODEL =
   effectiveVisionProvider === provider
     ? CHAT_MODEL
     : (CHAT_PROVIDERS[effectiveVisionProvider] ?? CHAT_PROVIDERS.openai).defaultModel;
+
+/** Which provider the `visionOpenai` client actually talks to — for cost-tracking/logging. */
+export const ACTIVE_VISION_PROVIDER: ChatProvider = effectiveVisionProvider;
 
 // Clients are constructed lazily, on first use, rather than at module load.
 // This module is imported by nearly every API route (directly or via chat

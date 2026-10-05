@@ -60,18 +60,30 @@ function getSafeReturnTo(value: unknown): string {
   return value;
 }
 
+const ADMIN_EMAILS = new Set(
+  (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
+
 async function upsertUser(claims: Record<string, unknown>): Promise<{
   user: typeof usersTable.$inferSelect;
   isNewUser: boolean;
 }> {
+  const email = (claims.email as string) || null;
   const userData = {
     id: claims.sub as string,
-    email: (claims.email as string) || null,
+    email,
     firstName: (claims.first_name as string) || null,
     lastName: (claims.last_name as string) || null,
     profileImageUrl: (claims.profile_image_url || claims.picture) as
       | string
       | null,
+    // Re-derived on every login from ADMIN_EMAILS rather than left
+    // sticky, so removing an email from the list revokes admin access
+    // the next time that person signs in.
+    isAdmin: email ? ADMIN_EMAILS.has(email.toLowerCase()) : false,
   };
 
   const [existing] = await db
@@ -197,6 +209,7 @@ router.get("/callback", async (req: Request, res: Response) => {
       firstName: dbUser.firstName,
       lastName: dbUser.lastName,
       profileImageUrl: dbUser.profileImageUrl,
+      isAdmin: dbUser.isAdmin,
     },
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
@@ -275,6 +288,7 @@ router.post(
           firstName: dbUser.firstName,
           lastName: dbUser.lastName,
           profileImageUrl: dbUser.profileImageUrl,
+          isAdmin: dbUser.isAdmin,
         },
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
