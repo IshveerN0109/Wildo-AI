@@ -9,11 +9,14 @@ import { getQuotaErrorMessage } from "@/lib/quota-error";
 
 type Difficulty = "easy" | "medium" | "hard";
 type Phase = "setup" | "loading" | "quiz" | "results";
+type QuestionPhase = "reading" | "answering";
 
+// Two timed phases per question: readSeconds to read the question alone
+// (options hidden), then answerSeconds to pick an answer once they appear.
 const DIFFICULTY_CONFIG = {
-  easy:   { label: "Easy",   seconds: 10, color: "text-emerald-500", bg: "bg-emerald-500", border: "border-emerald-400", ring: "ring-emerald-400", desc: "10 sec · Recall & knowledge" },
-  medium: { label: "Medium", seconds: 20, color: "text-amber-500",   bg: "bg-amber-500",   border: "border-amber-400",   ring: "ring-amber-400",   desc: "20 sec · Application & analysis" },
-  hard:   { label: "Hard",   seconds: 30, color: "text-rose-500",    bg: "bg-rose-500",    border: "border-rose-400",    ring: "ring-rose-400",    desc: "30 sec · Evaluation & synthesis" },
+  easy:   { label: "Easy",   readSeconds: 10, answerSeconds: 10, color: "text-emerald-500", bg: "bg-emerald-500", border: "border-emerald-400", ring: "ring-emerald-400", desc: "10 sec to read · 10 sec to answer" },
+  medium: { label: "Medium", readSeconds: 20, answerSeconds: 15, color: "text-amber-500",   bg: "bg-amber-500",   border: "border-amber-400",   ring: "ring-amber-400",   desc: "20 sec to read · 15 sec to answer" },
+  hard:   { label: "Hard",   readSeconds: 30, answerSeconds: 20, color: "text-rose-500",    bg: "bg-rose-500",    border: "border-rose-400",    ring: "ring-rose-400",    desc: "30 sec to read · 20 sec to answer" },
 };
 
 export default function Quiz() {
@@ -31,6 +34,7 @@ export default function Quiz() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [timePerQuestion, setTimePerQuestion] = useState(20);
   const [currentQ, setCurrentQ]   = useState(0);
+  const [questionPhase, setQuestionPhase] = useState<QuestionPhase>("reading");
   const [selected, setSelected]   = useState<number | null>(null);
   const [answered, setAnswered]   = useState(false);
   const [timeLeft, setTimeLeft]   = useState(20);
@@ -38,27 +42,35 @@ export default function Quiz() {
   const [quizMeta, setQuizMeta]   = useState({ subject: "", level: "", topic: "", difficulty: "" });
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activeCfg = DIFFICULTY_CONFIG[(quizMeta.difficulty || difficulty) as Difficulty];
 
   const generateQuiz = useGenerateQuiz();
   const completeQuiz = useCompleteQuiz();
   const { data: history } = useGetQuizHistory();
 
   // ── Timer ─────────────────────────────────────────────────────────────────
+  // Reading phase: question only, options hidden. Once it runs out, options
+  // reveal and the answering phase's own timer starts — never both at once.
   useEffect(() => {
     if (phase !== "quiz" || answered) return;
-    setTimeLeft(timePerQuestion);
+    const seconds = questionPhase === "reading" ? activeCfg.readSeconds : activeCfg.answerSeconds;
+    setTimeLeft(seconds);
     timerRef.current = setInterval(() => {
       setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(timerRef.current!);
-          handleTimeout();
+          if (questionPhase === "reading") {
+            setQuestionPhase("answering");
+          } else {
+            handleTimeout();
+          }
           return 0;
         }
         return t - 1;
       });
     }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [phase, currentQ, answered]);
+  }, [phase, currentQ, answered, questionPhase]);
 
   function handleTimeout() {
     setAnswered(true);
@@ -66,7 +78,7 @@ export default function Quiz() {
   }
 
   function handleSelect(idx: number) {
-    if (answered) return;
+    if (answered || questionPhase !== "answering") return;
     clearInterval(timerRef.current!);
     setSelected(idx);
     setAnswered(true);
@@ -78,6 +90,7 @@ export default function Quiz() {
       finishQuiz();
     } else {
       setCurrentQ(q => q + 1);
+      setQuestionPhase("reading");
       setSelected(null);
       setAnswered(false);
     }
@@ -110,6 +123,7 @@ export default function Quiz() {
           setTimePerQuestion(data.timePerQuestion);
           setQuizMeta({ subject, level, topic: topicToUse.trim(), difficulty });
           setCurrentQ(0);
+          setQuestionPhase("reading");
           setSelected(null);
           setAnswered(false);
           setScores([]);
@@ -135,6 +149,7 @@ export default function Quiz() {
     setSelected(null);
     setAnswered(false);
     setCurrentQ(0);
+    setQuestionPhase("reading");
     setCustomTopic("");
     setTopic("");
   }
@@ -270,7 +285,10 @@ export default function Quiz() {
   if (phase === "quiz") {
     const q = questions[currentQ];
     if (!q) return null;
-    const timerPct = (timeLeft / timePerQuestion) * 100;
+    const cfg = activeCfg;
+    const isReading = questionPhase === "reading";
+    const phaseSeconds = isReading ? cfg.readSeconds : cfg.answerSeconds;
+    const timerPct = (timeLeft / phaseSeconds) * 100;
     const timerColor = timerPct > 50 ? cfg.bg : timerPct > 25 ? "bg-amber-500" : "bg-rose-500";
 
     return (
@@ -280,6 +298,10 @@ export default function Quiz() {
           <div className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">Q{currentQ + 1}</span> of {questions.length}
             <span className="mx-2">·</span>{quizMeta.topic}
+            <span className="mx-2">·</span>
+            <span className={isReading ? cfg.color : "text-foreground font-medium"}>
+              {isReading ? "Reading…" : "Answer now!"}
+            </span>
           </div>
           <div className={`flex items-center gap-1.5 font-bold text-lg tabular-nums ${timeLeft <= 5 ? "text-rose-500 animate-pulse" : cfg.color}`}>
             <Clock className="w-4 h-4" />
@@ -316,8 +338,17 @@ export default function Quiz() {
           <p className="text-lg font-serif leading-relaxed">{q.question}</p>
         </div>
 
+        {/* Reading phase: options stay hidden until this phase's timer runs out */}
+        {isReading && (
+          <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground animate-in fade-in duration-200">
+            <Clock className="w-4 h-4" />
+            Answer options appear in {timeLeft}s — read the question carefully.
+          </div>
+        )}
+
         {/* Options */}
-        <div className="grid grid-cols-1 gap-2.5">
+        {!isReading && (
+        <div className="grid grid-cols-1 gap-2.5 animate-in fade-in slide-in-from-bottom-1 duration-200">
           {q.options.map((opt, i) => {
             const isCorrect  = i === q.correctIndex;
             const isSelected = i === selected;
@@ -343,6 +374,7 @@ export default function Quiz() {
             );
           })}
         </div>
+        )}
 
         {/* Explanation + Next */}
         {answered && (
