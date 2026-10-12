@@ -5,8 +5,7 @@ router = "application"
 deploymentTarget = "autoscale"
 
 [deployment.postBuild]
-path = "scripts/deploy-post-build.sh"
-timeoutMs = 60000
+args = ["bash", "scripts/deploy-post-build.sh"]
 env = { "CI" = "true" }
 
 [workflows]
