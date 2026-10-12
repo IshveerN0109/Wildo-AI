@@ -5,5 +5,5 @@ set -e
 # Pushing the schema on every deploy keeps production's tables in sync
 # without anyone having to copy a production connection string into the
 # dev shell by hand.
-pnpm --filter @workspace/db run push
+pnpm --filter @workspace/db run push-force
 pnpm store prune
